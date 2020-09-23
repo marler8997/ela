@@ -1,0 +1,5 @@
+memoize justACircle fn {
+    circle
+}
+
+#default justACircle

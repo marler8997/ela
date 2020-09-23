@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+import shutil
+import sys
+import os
+
+from stringreader import StringReader
+from lex import Lexer, SyntaxError, EOF
+from parse import Parser
+
+def testLex(s, filenameForErrors):
+    reader = StringReader(s, filenameForErrors)
+    sourceRebuilt = ""
+    lastToken = None
+    lexer = Lexer(reader)
+    while True:
+        token = lexer.lexToken()
+        #print("got token {} '{}'".format(token.kind, reader.str[token.start:token.end]))
+        sourceRebuilt += s[lastToken.end if lastToken else 0 : token.end]
+        if token.kind != EOF:
+            assert(token.end > token.start)
+        if lastToken:
+            assert(token.start >= lastToken.end)
+        if token.kind == EOF:
+            break
+        lastToken = token
+    assert(sourceRebuilt == s)
+
+def parseCode(s, filenameForErrors):
+    expressions = []
+    parser = Parser(Lexer(StringReader(s, filenameForErrors)))
+    parser.parseInto(expressions)
+    return expressions
+
+def testString(s, moduleArgs, filenameForErrors):
+    testLex(s, filenameForErrors)
+    try:
+        expressions = parseCode(s, filenameForErrors)
+    except SyntaxError as err:
+        sys.exit(err)
+    #analyzer = Analyzer(moduleArgs, False, s, filenameForErrors)
+    #try:
+    #    analyzer.analyzeModule(expressions)
+    #except SemanticError as err:
+    #    sys.exit(err)
+
+def testFile(filename, moduleArgs, outDir):
+    print("testing file '{}'...".format(filename))
+    with open(filename, "r") as file:
+        testString(file.read(), moduleArgs, filename)
+    #outFile = os.path.join(outDir, os.path.basename(filename) + ".c")
+    #backend.gen(outFile)
+
+def testLexError(code, msg):
+    try:
+        testLex(code, None)
+        sys.exit("Error: expected the following code to fail with '{}' but it didn't fail\n{}".format(msg, code))
+    except SyntaxError as err:
+        if str(err) != msg:
+            sys.exit("The following code did not fail with the expected message:\n--- CODE ---\n{}\n------------\nExpected: {}\nActual  : {}\n".format(
+                code, msg, str(err)))
+
+def testSyntaxError(code, msg):
+    try:
+        parseCode(code, None)
+        sys.exit("Error: expected the following code to fail with '{}' but it didn't fail\n{}".format(msg, code))
+    except SyntaxError as err:
+        if str(err) != msg:
+            sys.exit("The following code did not fail with the expected message:\n--- CODE ---\n{}\n------------\nExpected: {}\nActual  : {}\n".format(
+                code, msg, str(err)))
+
+def main():
+    print("testing lex errors...")
+    testLexError('"', "line 1 col 1: quoted-string is missing close quote")
+    testLexError('"\\', "line 1 col 2: unfinished escape sequence")
+    testLexError('"\o"', "line 1 col 2: invalid escape sequence \"\o\"")
+
+    print("testing syntax errors...")
+    testSyntaxError("@0", "line 1 col 2: '@' must be followed by an ID token but got '0'")
+    testSyntaxError("macro 0", "line 1 col 7: expected an ID token after 'macro' but got NUMBER 0")
+    testSyntaxError("@debug(macro a 0)", "line 1 col 8: macro is only allowed at statement-level context (context=1)")
+    testSyntaxError("@debug(memoize a 0)", "line 1 col 8: memoize is only allowed at statement-level context (context=1)")
+    testSyntaxError("fn 0", "line 1 col 4: invalid function attribute '0'")
+    testSyntaxError("fn huh", "line 1 col 4: invalid function attribute 'huh'")
+    testSyntaxError("foo.", "line 1 col 5: expected ID after '.', but got 'EOF'")
+    testSyntaxError("foo.0", "line 1 col 5: expected ID after '.', but got '0'")
+
+
+    outDir = "out"
+    if os.path.exists(outDir):
+        shutil.rmtree(outDir)
+    os.mkdir(outDir)
+
+    testFile("examples/just_a_circle.ela", [], outDir)
+    #testFile("examples/comp_runtime_modes", [], outDir)
+    #testFile("examples/hello", [], outDir)
+    #testFile("examples/print_first_module_arg", [], outDir)
+    #testFile("examples/macro_memoization_difference", [], outDir)
+    #testFile("examples/macro_magic", [], outDir)
+    print("Success")
+
+main()
