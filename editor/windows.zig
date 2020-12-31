@@ -187,15 +187,7 @@ pub extern "gdi32" fn DescribePixelFormat(
 ) callconv(WINAPI) c_int;
 
 pub const opengl32 = struct {
-    pub const GLint = i32;
-    pub const GLsizei = u32;
-    pub const GLfloat = f32;
-    pub const GLenum = c_uint;
-    pub const GLbitfield = u32;
-
-    pub const GL_VERSION = 0x1F02;
-    pub const GL_COLOR_BUFFER_BIT = 16384;
-    pub const GL_TRIANGLES = 4;
+    usingnamespace @import("./gl.zig").bits;
 
     pub extern "opengl32" fn wglCreateContext(HDC) callconv(WINAPI) ?HGLRC;
     pub extern "opengl32" fn wglMakeCurrent(HDC, HGLRC) callconv(WINAPI) BOOL;
@@ -208,4 +200,5 @@ pub const opengl32 = struct {
     pub extern "opengl32" fn glVertex2i(x: GLint, y: GLint) callconv(WINAPI) void;
     pub extern "opengl32" fn glEnd() callconv(WINAPI) void;
     pub extern "opengl32" fn glFlush() callconv(WINAPI) void;
+    pub extern "opengl32" fn glCreateShader(shaderType: GLenum) callconv(WINAPI) GLuint;
 };

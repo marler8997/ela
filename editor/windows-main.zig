@@ -13,39 +13,19 @@ const user32 = win.user32;
 const gdi32 = win.gdi32;
 const opengl32 = win.opengl32;
 
+usingnamespace @import("./common.zig");
+const mygl = @import("./mygl.zig");
+
 const GetLastError = kernel32.GetLastError;
-const L = std.unicode.utf8ToUtf16LeStringLiteral;
 
-var globalLogFile : std.fs.File = undefined;
-var globalLog : std.fs.File.Writer = undefined;
-
-fn panicLog(also_log: bool, title: [:0]const u16, comptime msg_fmt: [:0]const u8, msg_args: anytype) noreturn {
-    const msg_buf = std.heap.page_allocator.alloc(u8, 300) catch @panic("allocation failed for panic error message");
-    const msg_a = std.fmt.bufPrint(msg_buf, msg_fmt, msg_args) catch @panic("bufPrint failed for panic error message");
-    if (also_log) {
-        globalLog.writeAll(msg_a) catch {}; // ignore error
-    }
-    const msg_w = std.unicode.utf8ToUtf16LeWithNull(std.heap.page_allocator, msg_a) catch @panic("utf8 to utf16 failed for panic error message");
-    _ = win.MessageBoxW(null, msg_w, title, win.MB_OK);
-    @panic(msg_a);
-}
-fn panic(title: [:0]const u16, comptime msg_fmt: [:0]const u8, msg_args: anytype) noreturn {
-    panicLog(true, title, msg_fmt, msg_args);
-}
-fn log(comptime fmt: []const u8, args: anytype) void {
-    globalLog.print(fmt ++ "\n", args) catch panic(L("Log Failed"), "log failed, the format message is: {}", .{fmt});
-}
-fn assert(cond: bool) void {
-    if (!cond) panic(L("Assertion Failed"), "an assert failed (todo: more info)", .{});
-}
-
-const WindowErrortitle = L("Window Setup Error");
-const GraphicsErrorTitle = L("Graphics Setup Error");
+const LogErrorTitle = T("Log Error");
+const WindowErrortitle = T("Window Setup Error");
+const GraphicsErrorTitle = T("Graphics Setup Error");
 
 pub export fn wWinMainCRTStartup() callconv(win.WINAPI) noreturn {
     const result = init: {
         const LOG_FILENAME = "editor.log";
-        globalLogFile = std.fs.cwd().createFile(LOG_FILENAME, .{}) catch panicLog(false, L("Failed to Create Log File"), "Failed to create log file '{}' {}", .{LOG_FILENAME, GetLastError()});
+        globalLogFile = std.fs.cwd().createFile(LOG_FILENAME, .{}) catch dieMaybeLog(false, LogErrorTitle, "Failed to create log file '{}' {}", .{LOG_FILENAME, GetLastError()});
         defer globalLogFile.close();
         globalLog = globalLogFile.writer();
         break :init main();
@@ -76,15 +56,15 @@ fn main() !void {
         .hCursor = null,
         .hbrBackground = null,
         .lpszMenuName = null,
-        .lpszClassName = L("My Window Class"),
+        .lpszClassName = T("My Window Class"),
     };
     if(0 == win.RegisterClassW(&wc))
-        panic(WindowErrortitle, "RegisterClassW failed with {}", .{GetLastError()});
+        die(WindowErrortitle, "RegisterClassW failed with {}", .{GetLastError()});
 
     const hWnd = win.CreateWindowExW(
         0,
         wc.lpszClassName,
-        L("MyWindowName"),
+        T("MyWindowName"),
         //win.WS_OVERLAPPEDWINDOW | win.WS_VISIBLE,
         win.WS_OVERLAPPEDWINDOW | win.WS_CLIPSIBLINGS | win.WS_CLIPCHILDREN,
         0,
@@ -94,15 +74,17 @@ fn main() !void {
         null, null,
         hInstance,
         null,
-    ) orelse panic(WindowErrortitle, "CreateWindowExW failed with {}", .{GetLastError()});
+    ) orelse die(WindowErrortitle, "CreateWindowExW failed with {}", .{GetLastError()});
 
-    const hdc = user32.GetDC(hWnd) orelse panic(WindowErrortitle, "GetDC failed with {}", .{GetLastError()});
+    const hdc = user32.GetDC(hWnd) orelse die(WindowErrortitle, "GetDC failed with {}", .{GetLastError()});
     // TODO: am I supposed to release this?
     //defer assert(1 == win.ReleaseDC(hWnd, hdc));
 
     // TODO: one example initialized opengl in WM_CREATE...is that better?
     _ = initOpengl(hdc, true);
     log("opengl initialized", .{});
+
+    mygl.init();
 
     _ = user32.ShowWindow(hWnd, user32.SW_SHOW);
 
@@ -130,13 +112,12 @@ fn WindowProc(hWnd: win.HWND, uMsg: u32, wParam: win.WPARAM, lParam: win.LPARAM)
             const width = win.LOWORD(@intCast(u32, 0xFFFFFFFF & @ptrToInt(lParam)));
             const height = win.HIWORD(@intCast(u32, 0xFFFFFFFF & @ptrToInt(lParam)));
             log("WM_SIZE {} x {}", .{width, height});
-            opengl32.glViewport(0, 0, width, height);
+            mygl.onWindowSize(width, height);
             assert(0 != win.PostMessageW(hWnd, win.WM_PAINT, 0, null));
             return null;
         },
         win.WM_PAINT => {
-            onPaint();
-
+            mygl.renderTriangle();
             var ps: win.PAINTSTRUCT = undefined;
             const hdc = win.BeginPaint(hWnd, &ps);
             // All painting occurs here, between BeginPaint and EndPaint.
@@ -150,26 +131,10 @@ fn WindowProc(hWnd: win.HWND, uMsg: u32, wParam: win.WPARAM, lParam: win.LPARAM)
     return win.DefWindowProcW(hWnd, uMsg, wParam, lParam);
 }
 
-fn onPaint() void {
-    log("onPaint", .{});
-    // rotate a triangle around
-    opengl32.glClear(opengl32.GL_COLOR_BUFFER_BIT);
-    opengl32.glBegin(opengl32.GL_TRIANGLES);
-    opengl32.glColor3f(1.0, 0.0, 0.0);
-    opengl32.glVertex2i(0,  1);
-    opengl32.glColor3f(0.0, 1.0, 0.0);
-    opengl32.glVertex2i(-1, -1);
-    opengl32.glColor3f(0.0, 0.0, 1.0);
-    opengl32.glVertex2i(1, -1);
-    opengl32.glEnd();
-    opengl32.glFlush();
-}
-
-
 fn initOpengl(hdc: win.HDC, log_pixel_format: bool) win.HGLRC {
     const pfd = gdi32.PIXELFORMATDESCRIPTOR {
         .nVersion = 1,
-        //.dwFlags = user32.PFD_DRAW_TO_WINDOW | user32.PFD_SUPPORT_OPENGL | user32.PFD_DOUBLEBUFFER,
+        // TODO: ser32.PFD_DOUBLEBUFFER?
         .dwFlags = user32.PFD_DRAW_TO_WINDOW | user32.PFD_SUPPORT_OPENGL,
         .iPixelType = user32.PFD_TYPE_RGBA,
         .cColorBits = 32,
@@ -187,14 +152,14 @@ fn initOpengl(hdc: win.HDC, log_pixel_format: bool) win.HGLRC {
     };
     const chosen = gdi32.ChoosePixelFormat(hdc, &pfd);
     if (chosen == 0)
-        panic(GraphicsErrorTitle, "ChoosePixelFormat failed with {}", .{GetLastError()});
+        die(GraphicsErrorTitle, "ChoosePixelFormat failed with {}", .{GetLastError()});
     log("chosen format is {}", .{chosen});
 
     if (log_pixel_format) {
         var actual_pfd : gdi32.PIXELFORMATDESCRIPTOR = undefined;
         // TODO: should I verify any of these values??
         const max_pfd_index = win.DescribePixelFormat(hdc, chosen, @sizeOf(@TypeOf(actual_pfd)), &actual_pfd);
-        if (max_pfd_index == 0) panic(GraphicsErrorTitle, "DescribePixelFormat failed with {}", .{GetLastError()});
+        if (max_pfd_index == 0) die(GraphicsErrorTitle, "DescribePixelFormat failed with {}", .{GetLastError()});
         inline for (@typeInfo(gdi32.PIXELFORMATDESCRIPTOR).Struct.fields) |field| {
             if (@field(pfd, field.name) == @field(actual_pfd, field.name)) {
                 log("    {} {}", .{field.name, @field(pfd, field.name)});
@@ -206,12 +171,10 @@ fn initOpengl(hdc: win.HDC, log_pixel_format: bool) win.HGLRC {
 
     assert(gdi32.SetPixelFormat(hdc, chosen, &pfd));
 
-    const gl_context = opengl32.wglCreateContext(hdc) orelse panic(GraphicsErrorTitle, "wglCreateContext failed with {}", .{GetLastError()});
+    const gl_context = opengl32.wglCreateContext(hdc) orelse die(GraphicsErrorTitle, "wglCreateContext failed with {}", .{GetLastError()});
     if (1 != opengl32.wglMakeCurrent(hdc, gl_context)) {
-        panic(GraphicsErrorTitle, "wglMakeCurrent failed with {}", .{GetLastError()});
+        die(GraphicsErrorTitle, "wglMakeCurrent failed with {}", .{GetLastError()});
     }
-
-    log("OPENGL VERSION: {}", .{opengl32.glGetString(opengl32.GL_VERSION)});
-    log("!!! TODO: parse and verify opengl version", .{});
+    mygl.contextInitialized();
     return gl_context;
 }
