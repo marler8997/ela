@@ -13,7 +13,13 @@ const user32 = win.user32;
 const gdi32 = win.gdi32;
 const opengl32 = win.opengl32;
 
-usingnamespace @import("./common.zig");
+const common = @import("./common.zig");
+const log = common.log;
+const die = common.die;
+const assert = common.assert;
+const L = common.L;
+const T = common.T;
+
 const mygl = @import("./mygl.zig");
 
 const GetLastError = kernel32.GetLastError;
@@ -26,8 +32,8 @@ const GraphicsErrorTitle = T("Graphics Setup Error");
 pub fn panic(msg: []const u8, stacktrace: ?*std.builtin.StackTrace) noreturn {
     //const msg_buf = std.heap.page_allocator.alloc(u8, 300) catch @panic("allocation failed for panic error message");
     //const msg_a = std.fmt.bufPrint(msg_buf, msg_fmt, msg_args) catch @panic("bufPrint failed for panic error message");
-    if (global_log_open) {
-        global_log.writeAll(msg) catch {}; // ignore error
+    if (common.global_log_open) {
+        common.global_log.writeAll(msg) catch {}; // ignore error
         // TODO: log stack trace
     }
     const msg_w = std.unicode.utf8ToUtf16LeWithNull(std.heap.page_allocator, msg) catch L("Failed to convert panic error message to UTF16");
@@ -36,14 +42,27 @@ pub fn panic(msg: []const u8, stacktrace: ?*std.builtin.StackTrace) noreturn {
     kernel32.ExitProcess(1);
 }
 
+// workaround: https://github.com/ziglang/zig/issues/7645
+fn handleSegfault(info: *win.EXCEPTION_POINTERS) callconv(win.WINAPI) c_long {
+    const desc = switch (info.ExceptionRecord.ExceptionCode) {
+        win.EXCEPTION_DATATYPE_MISALIGNMENT => "Unaligned Memory Access",
+        win.EXCEPTION_ACCESS_VIOLATION => "Access Violation",
+        win.EXCEPTION_ILLEGAL_INSTRUCTION => "Illegal Instruction",
+        win.EXCEPTION_STACK_OVERFLOW => "Stack Overflow",
+        else => "???",
+    };
+    die(L("SegFault"), "{} ({})", .{desc, info.ExceptionRecord.ExceptionCode});
+}
 
 pub export fn wWinMainCRTStartup() callconv(win.WINAPI) noreturn {
+    _ = kernel32.AddVectoredExceptionHandler(0, handleSegfault);
+
     const result = init: {
         const LOG_FILENAME = "editor.log";
-        global_log_file = std.fs.cwd().createFile(LOG_FILENAME, .{}) catch die(LogErrorTitle, "Failed to create log file '{}' {}", .{LOG_FILENAME, GetLastError()});
-        defer global_log_file.close();
-        global_log = global_log_file.writer();
-        global_log_open = true;
+        common.global_log_file = std.fs.cwd().createFile(LOG_FILENAME, .{}) catch die(LogErrorTitle, "Failed to create log file '{}' {}", .{LOG_FILENAME, GetLastError()});
+        defer common.global_log_file.close();
+        common.global_log = common.global_log_file.writer();
+        common.global_log_open = true;
         break :init main();
     };
     if (result) {

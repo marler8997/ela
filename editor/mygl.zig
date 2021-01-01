@@ -15,8 +15,12 @@ usingnamespace gl.funcs;
 //usingnamespace gl.v2_0.Funcs;
 //usingnamespace @import("./gl.zig");
 
-var glCreateShader: PFNGLCREATESHADERPROC = undefined;
-var glShaderSource: PFNGLSHADERSOURCEPROC = undefined;
+const dynamic_procs = struct {
+    pub var glCreateShader: PFNGLCREATESHADERPROC = undefined;
+    pub var glShaderSource: PFNGLSHADERSOURCEPROC = undefined;
+};
+usingnamespace dynamic_procs;
+
 
 usingnamespace if (std.builtin.os.tag == .windows) struct {
     pub const win = struct {
@@ -31,21 +35,12 @@ usingnamespace if (std.builtin.os.tag == .windows) struct {
 } else struct {};
 
 
-fn loadGlProc(comptime func: [:0]const u8) void {
-    if (std.builtin.os.tag == .windows) {
-        @field(@This(), func) = @ptrCast(@TypeOf(@field(@This(), func)), gl.windows.wglGetProcAddress(func)
-            orelse die(GlGetProcErrorTitle, "load '{}' failed with {}", .{func, GetLastError()}));
-    }
-}
-
 pub fn contextInitialized() void {
     log("OPENGL VERSION: {}", .{glGetString(GL_VERSION)});
     log("!!! TODO: parse and verify opengl version", .{});
 
-    if (std.builtin.os.tag == .windows) {
-        loadGlProc("glCreateShader");
-        // TODO: comment this out to cause a NULL reference and make sure the panic handler pops up an error window
-        loadGlProc("glShaderSource");
+    if (gl.getProcs(dynamic_procs)) |err| {
+        die(GlGetProcErrorTitle, "after loading {} OpenGL functions, failed to load '{}' with {}", .{err.loaded, err.failed, GetLastError()});
     }
 }
 

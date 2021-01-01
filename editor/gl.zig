@@ -35,7 +35,31 @@ pub const bits = struct {
 
 pub const windows = if (std.builtin.os.tag == .windows) @import("./windows.zig").opengl32 else @compileError("windows only supported on Windows");
 
+pub usingnamespace if (std.builtin.os.tag == .windows) struct {
+    pub const GetProcsError = struct {
+        loaded: u32,
+        // TODO: include ':0' when issue fixed: https://github.com/ziglang/zig/issues/7644
+        //failed: [:0]const u8,
+        failed: []const u8,
+    };
+    pub fn getProcs(dynamic_funcs: anytype) ?GetProcsError {
+        @import("./common.zig").log("loading {} funcs...", .{@typeInfo(dynamic_funcs).Struct.fields.len});
+        inline for (@typeInfo(dynamic_funcs).Struct.decls) |decl, i| {
+            @import("./common.zig").log("loading '{}'...", .{decl.name});
+            // workaround: https://github.com/ziglang/zig/issues/7644
+            const workaround_decl_name_type = @ptrCast([*:0]const u8, decl.name.ptr);
+            if (workaround_decl_name_type[decl.name.len] != 0) {
+                die(L("Internal Error"), "I thought Zig's Declaration.name was guarnateed to be NULL-terminated but it isn't");
+            }
+            @field(dynamic_funcs, decl.name) = @ptrCast(@TypeOf(@field(dynamic_funcs, decl.name)), windows.wglGetProcAddress(workaround_decl_name_type)
+                orelse return GetProcsError { .loaded = i, .failed = decl.name });
+        }
+        return null;
+    }
+} else struct {};
+
 pub const funcs = if (std.builtin.os.tag == .windows) struct {
+
     pub const glGetString = windows.glGetString;
     pub const glViewport = windows.glViewport;
     pub const glClear = windows.glClear;
