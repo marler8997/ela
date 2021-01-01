@@ -22,12 +22,28 @@ const LogErrorTitle = T("Log Error");
 const WindowErrortitle = T("Window Setup Error");
 const GraphicsErrorTitle = T("Graphics Setup Error");
 
+
+pub fn panic(msg: []const u8, stacktrace: ?*std.builtin.StackTrace) noreturn {
+    //const msg_buf = std.heap.page_allocator.alloc(u8, 300) catch @panic("allocation failed for panic error message");
+    //const msg_a = std.fmt.bufPrint(msg_buf, msg_fmt, msg_args) catch @panic("bufPrint failed for panic error message");
+    if (global_log_open) {
+        global_log.writeAll(msg) catch {}; // ignore error
+        // TODO: log stack trace
+    }
+    const msg_w = std.unicode.utf8ToUtf16LeWithNull(std.heap.page_allocator, msg) catch L("Failed to convert panic error message to UTF16");
+    _ = win.MessageBoxW(null, msg_w, L("Panic"), win.MB_OK);
+    // TODO: include stack trace in message box
+    kernel32.ExitProcess(1);
+}
+
+
 pub export fn wWinMainCRTStartup() callconv(win.WINAPI) noreturn {
     const result = init: {
         const LOG_FILENAME = "editor.log";
-        globalLogFile = std.fs.cwd().createFile(LOG_FILENAME, .{}) catch dieMaybeLog(false, LogErrorTitle, "Failed to create log file '{}' {}", .{LOG_FILENAME, GetLastError()});
-        defer globalLogFile.close();
-        globalLog = globalLogFile.writer();
+        global_log_file = std.fs.cwd().createFile(LOG_FILENAME, .{}) catch die(LogErrorTitle, "Failed to create log file '{}' {}", .{LOG_FILENAME, GetLastError()});
+        defer global_log_file.close();
+        global_log = global_log_file.writer();
+        global_log_open = true;
         break :init main();
     };
     if (result) {

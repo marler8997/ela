@@ -191,6 +191,7 @@ pub const opengl32 = struct {
 
     pub extern "opengl32" fn wglCreateContext(HDC) callconv(WINAPI) ?HGLRC;
     pub extern "opengl32" fn wglMakeCurrent(HDC, HGLRC) callconv(WINAPI) BOOL;
+    pub extern "opengl32" fn wglGetProcAddress([*:0]const u8) ?*c_void;
 
     pub extern "opengl32" fn glGetString(name: GLenum) callconv(WINAPI) [*:0]u8;
     pub extern "opengl32" fn glViewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei) callconv(WINAPI) void;
@@ -200,5 +201,7 @@ pub const opengl32 = struct {
     pub extern "opengl32" fn glVertex2i(x: GLint, y: GLint) callconv(WINAPI) void;
     pub extern "opengl32" fn glEnd() callconv(WINAPI) void;
     pub extern "opengl32" fn glFlush() callconv(WINAPI) void;
-    pub extern "opengl32" fn glCreateShader(shaderType: GLenum) callconv(WINAPI) GLuint;
+
+    pub const PFNGLCREATESHADERPROC = fn(shaderType: GLenum) callconv(WINAPI) GLuint;
+    pub const PFNGLSHADERSOURCEPROC = fn(shader: GLuint, count: GLsizei, string: [*]const [*]const GLchar, length: ?[*]const GLint) callconv(WINAPI) void;
 };

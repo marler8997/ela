@@ -8,25 +8,23 @@ fn utf8PassThru(comptime utf8: []const u8) []const u8 {
 }
 pub const T = if (std.builtin.os.tag  == .windows) L else utf8PassThru;
 
-pub var globalLogFile : std.fs.File = undefined;
-pub var globalLog : std.fs.File.Writer = undefined;
+pub var global_log_file : std.fs.File = undefined;
+pub var global_log : std.fs.File.Writer = undefined;
+pub var global_log_open = false;
 
-pub fn dieMaybeLog(also_log: bool, title: [:0]const u16, comptime msg_fmt: [:0]const u8, msg_args: anytype) noreturn {
+pub fn die(title: [:0]const TChar, comptime msg_fmt: [:0]const u8, msg_args: anytype) noreturn {
     const win = @import("./windows.zig");
     const msg_buf = std.heap.page_allocator.alloc(u8, 300) catch @panic("allocation failed for panic error message");
     const msg_a = std.fmt.bufPrint(msg_buf, msg_fmt, msg_args) catch @panic("bufPrint failed for panic error message");
-    if (also_log) {
-        globalLog.writeAll(msg_a) catch {}; // ignore error
+    if (global_log_open) {
+        global_log.writeAll(msg_a) catch {}; // ignore error
     }
     const msg_w = std.unicode.utf8ToUtf16LeWithNull(std.heap.page_allocator, msg_a) catch @panic("utf8 to utf16 failed for panic error message");
     _ = win.MessageBoxW(null, msg_w, title, win.MB_OK);
-    @panic(msg_a);
-}
-pub fn die(title: [:0]const TChar, comptime msg_fmt: [:0]const u8, msg_args: anytype) noreturn {
-    dieMaybeLog(true, title, msg_fmt, msg_args);
+    win.kernel32.ExitProcess(1);
 }
 pub fn log(comptime fmt: []const u8, args: anytype) void {
-    globalLog.print(fmt ++ "\n", args) catch die(L("Log Failed"), "log failed, the format message is: {}", .{fmt});
+    global_log.print(fmt ++ "\n", args) catch die(L("Log Failed"), "log failed, the format message is: {}", .{fmt});
 }
 pub fn assert(cond: bool) void {
     if (!cond) die(L("Assertion Failed"), "an assert failed (todo: more info)", .{});
