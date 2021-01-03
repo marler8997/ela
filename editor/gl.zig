@@ -35,6 +35,10 @@ pub const bits = struct {
 
 pub const windows = if (std.builtin.os.tag == .windows) @import("./windows.zig").opengl32 else @compileError("windows only supported on Windows");
 
+fn toZStringLiteral(comptime s: []const u8) [:0]const u8 {
+    return (s ++ "\x00")[0 .. s.len :0];
+}
+
 pub usingnamespace if (std.builtin.os.tag == .windows) struct {
     pub const GetProcsError = struct {
         loaded: u32,
@@ -46,12 +50,9 @@ pub usingnamespace if (std.builtin.os.tag == .windows) struct {
         @import("./common.zig").log("loading {} funcs...", .{@typeInfo(dynamic_funcs).Struct.fields.len});
         inline for (@typeInfo(dynamic_funcs).Struct.decls) |decl, i| {
             @import("./common.zig").log("loading '{}'...", .{decl.name});
-            // workaround: https://github.com/ziglang/zig/issues/7644
-            const workaround_decl_name_type = @ptrCast([*:0]const u8, decl.name.ptr);
-            if (workaround_decl_name_type[decl.name.len] != 0) {
-                die(L("Internal Error"), "I thought Zig's Declaration.name was guarnateed to be NULL-terminated but it isn't");
-            }
-            @field(dynamic_funcs, decl.name) = @ptrCast(@TypeOf(@field(dynamic_funcs, decl.name)), windows.wglGetProcAddress(workaround_decl_name_type)
+            const decl_name_z = toZStringLiteral(decl.name);
+            std.debug.assert(decl_name_z.ptr[decl_name_z.len] == 0);
+            @field(dynamic_funcs, decl.name) = @ptrCast(@TypeOf(@field(dynamic_funcs, decl.name)), windows.wglGetProcAddress(decl_name_z)
                 orelse return GetProcsError { .loaded = i, .failed = decl.name });
         }
         return null;
