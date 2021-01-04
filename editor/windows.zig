@@ -204,4 +204,8 @@ pub const opengl32 = struct {
 
     pub const PFNGLCREATESHADERPROC = fn(shaderType: GLenum) callconv(WINAPI) GLuint;
     pub const PFNGLSHADERSOURCEPROC = fn(shader: GLuint, count: GLsizei, string: [*]const [*]const GLchar, length: ?[*]const GLint) callconv(WINAPI) void;
+    pub const PFNGLCOMPILESHADERPROC = fn(shader: GLuint) callconv(WINAPI) void;
+    pub const PFNGLGETSHADERIVPROC = fn(shader: GLuint, pname: GLenum, out_parm: *GLint) callconv(WINAPI) void;
+    pub const PFNGLGETSHADERINFOLOGPROC = fn(shader: GLuint, capacity: GLsizei, len_ref: ?*GLsizei, info_log: [*]GLchar) callconv(WINAPI) void;
+
 };

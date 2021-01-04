@@ -18,6 +18,9 @@ usingnamespace gl.funcs;
 const dynamic_procs = struct {
     pub var glCreateShader: PFNGLCREATESHADERPROC = undefined;
     pub var glShaderSource: PFNGLSHADERSOURCEPROC = undefined;
+    pub var glCompileShader: PFNGLCOMPILESHADERPROC = undefined;
+    pub var glGetShaderiv: PFNGLGETSHADERIVPROC = undefined;
+    pub var glGetShaderInfoLog: PFNGLGETSHADERINFOLOGPROC = undefined;
 };
 usingnamespace dynamic_procs;
 
@@ -92,6 +95,21 @@ pub fn init() void {
     const vsrc : [:0]const u8 = vertex_shader_src;
     var src = [_][*:0]const u8 { vsrc.ptr };
     glShaderSource(vertex_shader_id, src.len, &src, null);
+    glCompileShader(vertex_shader_id);
+
+    // check that shader was compiled
+    {
+        var compile_status : GLint = 0;
+        glGetShaderiv(vertex_shader_id, GL_COMPILE_STATUS, &compile_status);
+        if (compile_status == 0) {
+            var info_log_buf: [512]u8 = undefined;
+            log("Error: failed to compile vertex shader", .{});
+            var info_len : GLsizei = 0;
+            glGetShaderInfoLog(vertex_shader_id, info_log_buf.len, &info_len, &info_log_buf);
+            log("{}", .{info_log_buf[0 .. @intCast(usize, info_len)]});
+            die(GlInitErrorTitle, "failed to compile vertex shader, see log for details", .{});
+        }
+    }
 
 }
 

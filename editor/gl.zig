@@ -31,6 +31,9 @@ pub const bits = struct {
     pub const GL_COLOR_BUFFER_BIT = 16384;
     pub const GL_TRIANGLES = 4;
     pub const GL_VERTEX_SHADER = 0x8B31;
+    pub const GL_DELETE_STATUS = 0x8B80;
+    pub const GL_COMPILE_STATUS = 0x8B81;
+    pub const GL_LINK_STATUS = 0x8B82;
 };
 
 pub const windows = if (std.builtin.os.tag == .windows) @import("./windows.zig").opengl32 else @compileError("windows only supported on Windows");
@@ -47,9 +50,9 @@ pub usingnamespace if (std.builtin.os.tag == .windows) struct {
         failed: []const u8,
     };
     pub fn getProcs(dynamic_funcs: anytype) ?GetProcsError {
-        @import("./common.zig").log("loading {} funcs...", .{@typeInfo(dynamic_funcs).Struct.fields.len});
+        @import("./common.zig").log("loading {} OpenGL functions...", .{@typeInfo(dynamic_funcs).Struct.decls.len});
         inline for (@typeInfo(dynamic_funcs).Struct.decls) |decl, i| {
-            @import("./common.zig").log("loading '{}'...", .{decl.name});
+            @import("./common.zig").log("  loading '{}'...", .{decl.name});
             const decl_name_z = toZStringLiteral(decl.name);
             std.debug.assert(decl_name_z.ptr[decl_name_z.len] == 0);
             @field(dynamic_funcs, decl.name) = @ptrCast(@TypeOf(@field(dynamic_funcs, decl.name)), windows.wglGetProcAddress(decl_name_z)
@@ -72,5 +75,8 @@ pub const funcs = if (std.builtin.os.tag == .windows) struct {
 
     pub const PFNGLCREATESHADERPROC = windows.PFNGLCREATESHADERPROC;
     pub const PFNGLSHADERSOURCEPROC = windows.PFNGLSHADERSOURCEPROC;
+    pub const PFNGLCOMPILESHADERPROC = windows.PFNGLCOMPILESHADERPROC;
+    pub const PFNGLGETSHADERIVPROC = windows.PFNGLGETSHADERIVPROC;
+    pub const PFNGLGETSHADERINFOLOGPROC = windows.PFNGLGETSHADERINFOLOGPROC;
 
 } else @compileError("unsupported platform");
