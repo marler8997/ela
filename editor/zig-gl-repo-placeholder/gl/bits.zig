@@ -1,0 +1,19 @@
+pub const GLvoid     = c_void;
+pub const GLenum     = u32;
+pub const GLfloat    = f32;
+pub const GLint      = i32;
+pub const GLsizei    = i32;
+pub const GLbitfield = u32;
+pub const GLdouble   = f64;
+pub const GLuint     = u32;
+pub const GLboolean  = u8;
+pub const GLubyte    = u8;
+pub const GLchar     = u8;
+
+pub const GL_VERSION = 0x1F02;
+pub const GL_COLOR_BUFFER_BIT = 16384;
+pub const GL_TRIANGLES = 4;
+pub const GL_VERTEX_SHADER = 0x8B31;
+pub const GL_DELETE_STATUS = 0x8B80;
+pub const GL_COMPILE_STATUS = 0x8B81;
+pub const GL_LINK_STATUS = 0x8B82;

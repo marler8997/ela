@@ -11,7 +11,8 @@ const win = struct {
 const kernel32 = win.kernel32;
 const user32 = win.user32;
 const gdi32 = win.gdi32;
-const opengl32 = win.opengl32;
+
+const gl = @import("gl");
 
 const common = @import("./common.zig");
 const log = common.log;
@@ -206,8 +207,8 @@ fn initOpengl(hdc: win.HDC, log_pixel_format: bool) win.HGLRC {
 
     assert(gdi32.SetPixelFormat(hdc, chosen, &pfd));
 
-    const gl_context = opengl32.wglCreateContext(hdc) orelse die(GraphicsErrorTitle, "wglCreateContext failed with {}", .{GetLastError()});
-    if (1 != opengl32.wglMakeCurrent(hdc, gl_context)) {
+    const gl_context = gl.windows.wglCreateContext(hdc) orelse die(GraphicsErrorTitle, "wglCreateContext failed with {}", .{GetLastError()});
+    if (1 != gl.windows.wglMakeCurrent(hdc, gl_context)) {
         die(GraphicsErrorTitle, "wglMakeCurrent failed with {}", .{GetLastError()});
     }
     mygl.contextInitialized();

@@ -4,26 +4,19 @@ const common = @import("./common.zig");
 const log = common.log;
 const die = common.die;
 
-const gl = @import("./gl.zig");
-
+const gl = @import("gl.generated.zig");
+usingnamespace gl;
 usingnamespace gl.bits;
-usingnamespace gl.funcs;
+usingnamespace gl.runtimefuncs;
+
+//usingnamespace gl.bits;
+//usingnamespace gl.funcs;
 //usingnamespace gl.v1_0;
 //usingnamespace gl.v1_0.Funcs;
 
 //usingnamespace gl.v2_0;
 //usingnamespace gl.v2_0.Funcs;
 //usingnamespace @import("./gl.zig");
-
-const dynamic_procs = struct {
-    pub var glCreateShader: PFNGLCREATESHADERPROC = undefined;
-    pub var glShaderSource: PFNGLSHADERSOURCEPROC = undefined;
-    pub var glCompileShader: PFNGLCOMPILESHADERPROC = undefined;
-    pub var glGetShaderiv: PFNGLGETSHADERIVPROC = undefined;
-    pub var glGetShaderInfoLog: PFNGLGETSHADERINFOLOGPROC = undefined;
-};
-usingnamespace dynamic_procs;
-
 
 usingnamespace if (std.builtin.os.tag == .windows) struct {
     pub const win = struct {
@@ -42,7 +35,7 @@ pub fn contextInitialized() void {
     log("OPENGL VERSION: {}", .{glGetString(GL_VERSION)});
     log("!!! TODO: parse and verify opengl version", .{});
 
-    if (gl.getProcs(dynamic_procs)) |err| {
+    if (gl.loadRuntimeFuncs()) |err| {
         die(GlGetProcErrorTitle, "after loading {} OpenGL functions, failed to load '{}' with {}", .{err.loaded, err.failed, GetLastError()});
     }
 }
