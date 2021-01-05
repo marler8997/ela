@@ -120,7 +120,7 @@ fn main() !void {
     _ = initOpengl(hdc, true);
     log("opengl initialized", .{});
 
-    mygl.init();
+    try mygl.init();
 
     _ = user32.ShowWindow(hWnd, user32.SW_SHOW);
 

@@ -9,6 +9,8 @@ usingnamespace gl;
 usingnamespace gl.bits;
 usingnamespace gl.runtimefuncs;
 
+const zgl = @import("gl").zig.wrap(gl);
+
 //usingnamespace gl.bits;
 //usingnamespace gl.funcs;
 //usingnamespace gl.v1_0;
@@ -59,6 +61,7 @@ pub fn renderTriangle() void {
     glFlush();
 }
 
+// TODO: does this fix line numbers in shader log? gl.zig.toZLinesStringLiteral ???
 const vertex_shader_src =
     \\#version 330 core
     \\layout (location = 0) in vec3 aPos;
@@ -66,7 +69,7 @@ const vertex_shader_src =
     \\{
     \\    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
     \\}
-    ;
+;
 
 const fragment_shader_src =
     \\#version 330 core
@@ -75,39 +78,63 @@ const fragment_shader_src =
     \\{
     \\   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
     \\}
-    ;
+;
 
 
-pub fn init() void {
-    const vertex_shader_id = glCreateShader(GL_VERTEX_SHADER);
-    if (vertex_shader_id == 0)
-        die(GlInitErrorTitle, "glCreateShader VERTEX failed with {}\n", .{glLastError()});
+pub fn init() !void {
+    const vertex_shader = try compileShader(.vertex, vertex_shader_src);
+    defer glDeleteShader(vertex_shader);
 
-    // TODO: this isn't working, minimize it and file and issue for it
-    //var src = [_][*:0]const u8 { arrayRefAsSlice(vertex_shader_src) };
-    const vsrc : [:0]const u8 = vertex_shader_src;
-    var src = [_][*:0]const u8 { vsrc.ptr };
-    glShaderSource(vertex_shader_id, src.len, &src, null);
-    glCompileShader(vertex_shader_id);
+    const fragment_shader = try compileShader(.fragment, fragment_shader_src);
+    defer glDeleteShader(fragment_shader);
 
-    // check that shader was compiled
-    {
-        var compile_status : GLint = 0;
-        glGetShaderiv(vertex_shader_id, GL_COMPILE_STATUS, &compile_status);
-        if (compile_status == 0) {
-            var info_log_buf: [512]u8 = undefined;
-            log("Error: failed to compile vertex shader", .{});
-            var info_len : GLsizei = 0;
-            glGetShaderInfoLog(vertex_shader_id, info_log_buf.len, &info_len, &info_log_buf);
-            log("{}", .{info_log_buf[0 .. @intCast(usize, info_len)]});
-            die(GlInitErrorTitle, "failed to compile vertex shader, see log for details", .{});
-        }
-    }
+    const prog = glCreateProgram();
+    errdefer glDeleteProgram(prog);
 
+    if (prog == 0) die(GlInitErrorTitle, "glCreateProgram failed", .{});
+    glAttachShader(prog, vertex_shader);
+    glAttachShader(prog, fragment_shader);
+    glLinkProgram(prog);
+    try enforceProgramLinked(prog);
 }
 
+const ShaderKind = enum { vertex, fragment };
 
+fn compileShader(kind: ShaderKind, shader_src: [*:0]const u8) !GLuint {
+    const shader = glCreateShader(switch (kind) { .vertex => GL_VERTEX_SHADER, .fragment => GL_FRAGMENT_SHADER });
+    if (shader == 0)
+        die(GlInitErrorTitle, "glCreateShader {} failed with {}\n", .{kind, glLastError()});
+    errdefer glDeleteShader(shader);
 
+    zgl.shaderSourceSingle(shader, shader_src);
+    glCompileShader(shader);
+    try enforceShaderCompiled(kind, shader);
+    return shader;
+}
+
+fn enforceShaderCompiled(kind: ShaderKind, shader: GLuint) !void {
+    const compile_status = zgl.getShaderiv(shader, GL_COMPILE_STATUS);
+    if (compile_status == 0) {
+        log("Error: failed to compile {} shader", .{kind});
+        if (try zgl.getShaderInfoLogAlloc(std.heap.page_allocator, shader)) |log_str| {
+            log("{}", .{log_str});
+            die(GlInitErrorTitle, "failed to compile {} shader, see log for details", .{kind});
+        }
+        die(GlInitErrorTitle, "failed to compile {} shader, unable to retrieve error log", .{kind});
+    }
+}
+
+fn enforceProgramLinked(program: GLuint) !void {
+    const link_status = zgl.getProgramiv(program, GL_LINK_STATUS);
+    if (link_status == 0) {
+        log("Error: failed to link shaders", .{});
+        if (try zgl.getProgramInfoLogAlloc(std.heap.page_allocator, program)) |log_str| {
+            log("{}", .{log_str});
+            die(GlInitErrorTitle, "failed to link shaders, see log for details", .{});
+        }
+        die(GlInitErrorTitle, "failed to link shaders, unable to retrieve error log", .{});
+    }
+}
 
 // TODO: move this somewhere else if I want to use it
 pub fn ArrayRefAsSlice(comptime T: type) type {

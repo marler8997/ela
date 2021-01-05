@@ -22,6 +22,7 @@ pub const OpenGlCodegenStep = struct {
     fn make(step: *Step) anyerror!void {
         const self = @fieldParentPtr(OpenGlCodegenStep, "step", step);
 
+        // TODO: check if the source needs to be regenerated???
 
         var build_root = try std.fs.cwd().openDir(self.b.build_root, .{});
         defer build_root.close();
@@ -34,6 +35,8 @@ pub const OpenGlCodegenStep = struct {
             \\const gl = @import("gl");
             \\
             \\pub const bits = gl.bits;
+            \\pub const zig = gl.zig;
+            \\
             \\usingnamespace gl.bits;
             \\
             \\pub fn loadRuntimeFuncs() ?gl.zig.LoadRuntimeFuncsError {

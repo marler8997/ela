@@ -20,8 +20,15 @@ pub extern "opengl32" fn glFlush() callconv(WINAPI) void;
 /// Function pointer types for functions that must be loaded at runtime
 pub const RuntimeFnTypes = struct {
     pub const glCreateShader = fn(shaderType: GLenum) callconv(WINAPI) GLuint;
+    pub const glDeleteShader = fn(shader: GLuint) callconv(WINAPI) void;
     pub const glShaderSource = fn(shader: GLuint, count: GLsizei, string: [*]const [*]const GLchar, length: ?[*]const GLint) callconv(WINAPI) void;
     pub const glCompileShader = fn(shader: GLuint) callconv(WINAPI) void;
     pub const glGetShaderiv = fn(shader: GLuint, pname: GLenum, out_parm: *GLint) callconv(WINAPI) void;
+    pub const glGetProgramiv = fn(program: GLuint, pname: GLenum, out_parm: *GLint) callconv(WINAPI) void;
     pub const glGetShaderInfoLog = fn(shader: GLuint, capacity: GLsizei, len_ref: ?*GLsizei, info_log: [*]GLchar) callconv(WINAPI) void;
+    pub const glGetProgramInfoLog = fn(program: GLuint, capacity: GLsizei, len_ref: ?*GLsizei, info_log: [*]GLchar) callconv(WINAPI) void;
+    pub const glCreateProgram = fn() callconv(WINAPI) GLuint;
+    pub const glDeleteProgram = fn(program: GLuint) callconv(WINAPI) void;
+    pub const glAttachShader = fn(program: GLuint, shader: GLuint) callconv(WINAPI) void;
+    pub const glLinkProgram = fn(program: GLuint) callconv(WINAPI) void;
 };
