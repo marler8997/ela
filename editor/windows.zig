@@ -9,6 +9,12 @@ pub fn HIWORD(value: u32) u16 {
     return @intCast(u16, (value >> 16) & 0xFFFF);
 }
 
+// TODO: I think these used to be in zig user32.zig, but now its gone?
+pub const PFD_DRAW_TO_WINDOW = 4;
+pub const PFD_SUPPORT_OPENGL = 32;
+pub const PFD_TYPE_RGBA = 0;
+pub const PFD_MAIN_PLANE = 0;
+
 pub extern "kernel32" fn GetModuleHandleW(
     lpModuleName: ?[*:0]u16,
 ) callconv(WINAPI) HMODULE;
@@ -60,8 +66,6 @@ pub const WNDCLASSW = extern struct {
     lpszClassName: LPCWSTR,
 };
 
-pub const ATOM = u16;
-
 pub extern "user32" fn RegisterClassW (
     lpWndClass: *const WNDCLASSW,
 ) callconv(WINAPI) ATOM;
@@ -94,10 +98,6 @@ pub extern "user32" fn CreateWindowExW(
     lpParam: ?LPVOID,
 ) callconv(WINAPI) ?HWND;
 
-pub const POINT = extern struct {
-    x: c_long, y: c_long
-};
-
 pub const MSG = extern struct {
     hWnd: ?HWND,
     message: UINT,
@@ -128,12 +128,6 @@ pub extern "user32" fn DispatchMessageW(
   lpMsg: *const MSG,
 ) callconv(WINAPI) LRESULT;
 
-pub const RECT = extern struct {
-    left: LONG,
-    top: LONG,
-    right: LONG,
-    bottom: LONG,
-};
 
 pub extern "user32" fn BeginPaint(
     hWnd: HWND,

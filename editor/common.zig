@@ -24,7 +24,7 @@ pub fn die(title: [:0]const TChar, comptime msg_fmt: [:0]const u8, msg_args: any
     win.kernel32.ExitProcess(1);
 }
 pub fn log(comptime fmt: []const u8, args: anytype) void {
-    global_log.print(fmt ++ "\n", args) catch die(L("Log Failed"), "log failed, the format message is: {}", .{fmt});
+    global_log.print(fmt ++ "\n", args) catch die(L("Log Failed"), "log failed, the format message is: {s}", .{fmt});
 }
 pub fn assert(cond: bool) void {
     if (!cond) die(L("Assertion Failed"), "an assert failed (todo: more info)", .{});

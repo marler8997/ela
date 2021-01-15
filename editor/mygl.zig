@@ -34,11 +34,11 @@ usingnamespace if (std.builtin.os.tag == .windows) struct {
 
 
 pub fn contextInitialized() void {
-    log("OPENGL VERSION: {}", .{glGetString(GL_VERSION)});
+    log("OPENGL VERSION: {s}", .{glGetString(GL_VERSION)});
     log("!!! TODO: parse and verify opengl version", .{});
 
     if (gl.loadRuntimeFuncs()) |err| {
-        die(GlGetProcErrorTitle, "after loading {} OpenGL functions, failed to load '{}' with {}", .{err.loaded, err.failed, GetLastError()});
+        die(GlGetProcErrorTitle, "after loading {} OpenGL functions, failed to load '{s}' with {}", .{err.loaded, err.failed, GetLastError()});
     }
 }
 
@@ -117,7 +117,7 @@ fn enforceShaderCompiled(kind: ShaderKind, shader: GLuint) !void {
     if (compile_status == 0) {
         log("Error: failed to compile {} shader", .{kind});
         if (try zgl.getShaderInfoLogAlloc(std.heap.page_allocator, shader)) |log_str| {
-            log("{}", .{log_str});
+            log("{s}", .{log_str});
             die(GlInitErrorTitle, "failed to compile {} shader, see log for details", .{kind});
         }
         die(GlInitErrorTitle, "failed to compile {} shader, unable to retrieve error log", .{kind});
@@ -129,7 +129,7 @@ fn enforceProgramLinked(program: GLuint) !void {
     if (link_status == 0) {
         log("Error: failed to link shaders", .{});
         if (try zgl.getProgramInfoLogAlloc(std.heap.page_allocator, program)) |log_str| {
-            log("{}", .{log_str});
+            log("{s}", .{log_str});
             die(GlInitErrorTitle, "failed to link shaders, see log for details", .{});
         }
         die(GlInitErrorTitle, "failed to link shaders, unable to retrieve error log", .{});

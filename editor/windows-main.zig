@@ -52,7 +52,7 @@ fn handleSegfault(info: *win.EXCEPTION_POINTERS) callconv(win.WINAPI) c_long {
         win.EXCEPTION_STACK_OVERFLOW => "Stack Overflow",
         else => "???",
     };
-    die(L("SegFault"), "{} ({})", .{desc, info.ExceptionRecord.ExceptionCode});
+    die(L("SegFault"), "{s} ({})", .{desc, info.ExceptionRecord.ExceptionCode});
 }
 
 pub export fn wWinMainCRTStartup() callconv(win.WINAPI) noreturn {
@@ -60,7 +60,7 @@ pub export fn wWinMainCRTStartup() callconv(win.WINAPI) noreturn {
 
     const result = init: {
         const LOG_FILENAME = "editor.log";
-        common.global_log_file = std.fs.cwd().createFile(LOG_FILENAME, .{}) catch die(LogErrorTitle, "Failed to create log file '{}' {}", .{LOG_FILENAME, GetLastError()});
+        common.global_log_file = std.fs.cwd().createFile(LOG_FILENAME, .{}) catch die(LogErrorTitle, "Failed to create log file '{s}' {}", .{LOG_FILENAME, GetLastError()});
         defer common.global_log_file.close();
         common.global_log = common.global_log_file.writer();
         common.global_log_open = true;
@@ -138,19 +138,19 @@ fn WindowProc(hWnd: win.HWND, uMsg: u32, wParam: win.WPARAM, lParam: win.LPARAM)
         win.WM_DESTROY => {
             log("WM_DESTROY", .{});
             win.PostQuitMessage(0);
-            return null;
+            return 0;
         },
         //win.WM_CREATE => {
         //    log("WM_CREATE", .{});
-        //    return null;
+        //    return 0;
         //},
         win.WM_SIZE => {
-            const width = win.LOWORD(@intCast(u32, 0xFFFFFFFF & @ptrToInt(lParam)));
-            const height = win.HIWORD(@intCast(u32, 0xFFFFFFFF & @ptrToInt(lParam)));
+            const width = win.LOWORD(@intCast(u32, 0xFFFFFFFF & lParam));
+            const height = win.HIWORD(@intCast(u32, 0xFFFFFFFF & lParam));
             log("WM_SIZE {} x {}", .{width, height});
             mygl.onWindowSize(width, height);
-            assert(0 != win.PostMessageW(hWnd, win.WM_PAINT, 0, null));
-            return null;
+            assert(0 != win.PostMessageW(hWnd, win.WM_PAINT, 0, 0));
+            return 0;
         },
         win.WM_PAINT => {
             mygl.renderTriangle();
@@ -159,7 +159,7 @@ fn WindowProc(hWnd: win.HWND, uMsg: u32, wParam: win.WPARAM, lParam: win.LPARAM)
             // All painting occurs here, between BeginPaint and EndPaint.
             //_ = win.FillRect(hdc, &ps.rcPaint, @intToPtr(win.HBRUSH, @as(usize, win.COLOR_WINDOW+1)));
             _ = win.EndPaint(hWnd, &ps);
-            return null;
+            return 0;
         },
         else => {},
     }
@@ -171,8 +171,8 @@ fn initOpengl(hdc: win.HDC, log_pixel_format: bool) win.HGLRC {
     const pfd = gdi32.PIXELFORMATDESCRIPTOR {
         .nVersion = 1,
         // TODO: ser32.PFD_DOUBLEBUFFER?
-        .dwFlags = user32.PFD_DRAW_TO_WINDOW | user32.PFD_SUPPORT_OPENGL,
-        .iPixelType = user32.PFD_TYPE_RGBA,
+        .dwFlags = win.PFD_DRAW_TO_WINDOW | win.PFD_SUPPORT_OPENGL,
+        .iPixelType = win.PFD_TYPE_RGBA,
         .cColorBits = 32,
         .cRedBits = 0, .cRedShift = 0, .cGreenBits = 0, .cGreenShift = 0, .cBlueBits = 0, .cBlueShift = 0,
         .cAlphaBits = 0, .cAlphaShift = 0, .cAccumBits = 0,
@@ -180,7 +180,7 @@ fn initOpengl(hdc: win.HDC, log_pixel_format: bool) win.HGLRC {
         .cDepthBits = 24,
         .cStencilBits = 8,
         .cAuxBuffers = 0,
-        .iLayerType = user32.PFD_MAIN_PLANE,
+        .iLayerType = win.PFD_MAIN_PLANE,
         .bReserved = 0,
         .dwLayerMask = 0,
         .dwVisibleMask = 0,
@@ -198,9 +198,9 @@ fn initOpengl(hdc: win.HDC, log_pixel_format: bool) win.HGLRC {
         if (max_pfd_index == 0) die(GraphicsErrorTitle, "DescribePixelFormat failed with {}", .{GetLastError()});
         inline for (@typeInfo(gdi32.PIXELFORMATDESCRIPTOR).Struct.fields) |field| {
             if (@field(pfd, field.name) == @field(actual_pfd, field.name)) {
-                log("    {} {}", .{field.name, @field(pfd, field.name)});
+                log("    {s} {}", .{field.name, @field(pfd, field.name)});
             } else {
-                log("!!! {} {} --> {}", .{field.name, @field(pfd, field.name), @field(actual_pfd, field.name)});
+                log("!!! {s} {} --> {}", .{field.name, @field(pfd, field.name), @field(actual_pfd, field.name)});
             }
         }
     }
