@@ -46,6 +46,7 @@ pub fn build(b: *Builder) !void {
 const gl_funcs = [_][]const u8 {
     "glGetString",
     "glViewport",
+    "glClearColor",
     "glClear",
     "glBegin",
     "glEnd",

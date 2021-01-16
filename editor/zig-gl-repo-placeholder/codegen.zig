@@ -70,7 +70,7 @@ pub const OpenGlCodegenStep = struct {
                     } else if (runtime_func_map.get(func)) |_| {
                         try runtime_funcs.append(func);
                     } else {
-                        std.debug.warn("Error: unknown OpenGL function '{}' added to OpenGlCodegenStep in build.zig\n", .{func});
+                        std.debug.warn("Error: unknown OpenGL function '{s}' added to OpenGlCodegenStep in build.zig\n", .{func});
                     }
                 }
             }

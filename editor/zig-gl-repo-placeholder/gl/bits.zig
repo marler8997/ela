@@ -4,6 +4,7 @@
 pub const GLvoid     = c_void;
 pub const GLenum     = u32;
 pub const GLfloat    = f32;
+pub const GLclampf   = f32;
 pub const GLint      = i32;
 pub const GLsizei    = i32;
 pub const GLbitfield = u32;

@@ -46,19 +46,26 @@ pub fn onWindowSize(width: u32, height: u32) void {
     glViewport(0, 0, @intCast(i32, width), @intCast(i32, height));
 }
 
-pub fn renderTriangle() void {
-    log("renderTriange", .{});
-    // rotate a triangle around
+pub fn render(optional_gl_data: ?GLData) void {
+    log("render", .{});
+
+    glClearColor(0.2, 0.3, 0.3, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
-    glBegin(GL_TRIANGLES);
-    glColor3f(1.0, 0.0, 0.0);
-    glVertex2i(0,  1);
-    glColor3f(0.0, 1.0, 0.0);
-    glVertex2i(-1, -1);
-    glColor3f(0.0, 0.0, 1.0);
-    glVertex2i(1, -1);
-    glEnd();
-    glFlush();
+    if (optional_gl_data) |gl_data| {
+        //glUseProgram(gl_data.shader_prog);
+        //glBindVertex
+    } else {
+        // just a triangle
+        glBegin(GL_TRIANGLES);
+        glColor3f(1.0, 0.0, 0.0);
+        glVertex2i(0,  1);
+        glColor3f(0.0, 1.0, 0.0);
+        glVertex2i(-1, -1);
+        glColor3f(0.0, 0.0, 1.0);
+        glVertex2i(1, -1);
+        glEnd();
+        glFlush();
+    }
 }
 
 // TODO: does this fix line numbers in shader log? gl.zig.toZLinesStringLiteral ???
@@ -81,7 +88,12 @@ const fragment_shader_src =
 ;
 
 
-pub fn init() !void {
+pub const GLData = struct {
+    shader_prog: GLuint,
+    vao: GLuint,
+};
+
+pub fn init() !GLData {
     const vertex_shader = try compileShader(.vertex, vertex_shader_src);
     defer glDeleteShader(vertex_shader);
 
@@ -96,8 +108,6 @@ pub fn init() !void {
     glAttachShader(prog, fragment_shader);
     glLinkProgram(prog);
     try enforceProgramLinked(prog);
-
-
 
     //
     // hardcoded vertex objects for now
@@ -134,6 +144,8 @@ pub fn init() !void {
 
     // uncomment this call to draw in wireframe polygons.
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    return GLData { .shader_prog = prog, .vao = vao };
 }
 
 // TODO: this should be somewhere else, like std library

@@ -79,6 +79,8 @@ pub export fn wWinMainCRTStartup() callconv(win.WINAPI) noreturn {
     }
 }
 
+var global_gl_data : mygl.GLData = undefined;
+
 fn main() !void {
     log("started", .{});
     const hInstance = @ptrCast(win.HINSTANCE, @alignCast(@alignOf(win.HINSTANCE), win.GetModuleHandleW(null)));
@@ -120,7 +122,7 @@ fn main() !void {
     _ = initOpengl(hdc, true);
     log("opengl initialized", .{});
 
-    try mygl.init();
+    global_gl_data = try mygl.init();
 
     _ = user32.ShowWindow(hWnd, user32.SW_SHOW);
 
@@ -153,7 +155,8 @@ fn WindowProc(hWnd: win.HWND, uMsg: u32, wParam: win.WPARAM, lParam: win.LPARAM)
             return 0;
         },
         win.WM_PAINT => {
-            mygl.renderTriangle();
+            //mygl.render(global_gl_data);
+            mygl.render(null);
             var ps: win.PAINTSTRUCT = undefined;
             const hdc = win.BeginPaint(hWnd, &ps);
             // All painting occurs here, between BeginPaint and EndPaint.

@@ -10,6 +10,7 @@ pub extern "opengl32" fn wglGetProcAddress([*:0]const u8) ?*c_void;
 
 pub extern "opengl32" fn glGetString(name: GLenum) callconv(WINAPI) [*:0]u8;
 pub extern "opengl32" fn glViewport(x: GLint, y: GLint, width: GLsizei, height: GLsizei) callconv(WINAPI) void;
+pub extern "opengl32" fn glClearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf) void;
 pub extern "opengl32" fn glClear(mask: GLbitfield) callconv(WINAPI) void;
 pub extern "opengl32" fn glBegin(mode: GLenum) callconv(WINAPI) void;
 pub extern "opengl32" fn glColor3f(red: GLfloat, green: GLfloat, blue: GLfloat) callconv(WINAPI) void;
