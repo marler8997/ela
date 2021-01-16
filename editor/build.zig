@@ -69,4 +69,5 @@ const gl_funcs = [_][]const u8 {
     "glBindVertexArray",
     "glBindBuffer",
     "glBufferData",
+    "glVertexAttribPointer",
 };

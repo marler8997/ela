@@ -11,10 +11,19 @@ pub const GLubyte    = u8;
 pub const GLchar     = u8;
 pub const GLsizeiptr = isize;
 
+pub const GL_FALSE                          = 0;
+pub const GL_TRUE                           = 1;
+
 pub const GL_VERSION = 0x1F02;
 pub const GL_COLOR_BUFFER_BIT = 16384;
 pub const GL_TRIANGLES = 4;
 
+pub const GL_BYTE                           = 0x1400;
+pub const GL_UNSIGNED_BYTE                  = 0x1401;
+pub const GL_SHORT                          = 0x1402;
+pub const GL_UNSIGNED_SHORT                 = 0x1403;
+pub const GL_FLOAT                          = 0x1406;
+pub const GL_FIXED                          = 0x140C;
 
 pub const GL_BUFFER_SIZE                    = 0x8764;
 pub const GL_BUFFER_USAGE                   = 0x8765;

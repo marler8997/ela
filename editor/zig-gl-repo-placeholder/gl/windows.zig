@@ -36,4 +36,5 @@ pub const RuntimeFnTypes = struct {
     pub const glBindVertexArray = fn(array: GLuint) callconv(WINAPI) void;
     pub const glBindBuffer = fn(target: GLenum, buffer: GLuint) void;
     pub const glBufferData = fn(target: GLenum, size: GLsizeiptr, data: *const c_void, usage: GLenum) void;
+    pub const glVertexAttribPointer = fn(index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, pointer: ?*c_void) void;
 };

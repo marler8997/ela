@@ -128,7 +128,7 @@ pub fn init() !void {
             1, 2, 3, // second triangle
         }, GL_STATIC_DRAW);
 
-        //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
         //glEnableVertexAttribArray(0);
     }
 }
