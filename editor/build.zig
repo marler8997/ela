@@ -64,4 +64,9 @@ const gl_funcs = [_][]const u8 {
     "glDeleteProgram",
     "glAttachShader",
     "glLinkProgram",
+    "glGenVertexArrays",
+    "glGenBuffers",
+    "glBindVertexArray",
+    "glBindBuffer",
+    "glBufferData",
 };

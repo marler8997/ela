@@ -31,4 +31,9 @@ pub const RuntimeFnTypes = struct {
     pub const glDeleteProgram = fn(program: GLuint) callconv(WINAPI) void;
     pub const glAttachShader = fn(program: GLuint, shader: GLuint) callconv(WINAPI) void;
     pub const glLinkProgram = fn(program: GLuint) callconv(WINAPI) void;
+    pub const glGenVertexArrays = fn(n: GLsizei, arrays: [*]GLuint) callconv(WINAPI) void;
+    pub const glGenBuffers = fn(n: GLsizei, buffers: [*]GLuint) callconv(WINAPI) void;
+    pub const glBindVertexArray = fn(array: GLuint) callconv(WINAPI) void;
+    pub const glBindBuffer = fn(target: GLenum, buffer: GLuint) void;
+    pub const glBufferData = fn(target: GLenum, size: GLsizeiptr, data: *const c_void, usage: GLenum) void;
 };

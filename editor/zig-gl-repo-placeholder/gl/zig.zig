@@ -90,4 +90,15 @@ pub fn wrap(comptime generated_gl: anytype) type { return struct {
         std.debug.assert(log_str[@intCast(usize, log_len) - 1] == 0);
         return log_str[0 .. @intCast(usize, log_len) - 1 :0];
     }
+
+    pub fn genVertexArrays(objs: []GLuint) void {
+        glGenVertexArrays(@intCast(GLsizei, objs.len), objs.ptr);
+    }
+    pub fn genBuffers(objs: []GLuint) void {
+        glGenBuffers(@intCast(GLsizei, objs.len), objs.ptr);
+    }
+
+    pub fn bufferData(target: GLenum, comptime T: type, data: []const T, usage: GLenum) void {
+        glBufferData(target, @intCast(GLsizeiptr, data.len * @sizeOf(T)), data.ptr, usage);
+    }
 };}

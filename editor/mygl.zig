@@ -96,6 +96,54 @@ pub fn init() !void {
     glAttachShader(prog, fragment_shader);
     glLinkProgram(prog);
     try enforceProgramLinked(prog);
+
+
+
+    //
+    // hardcoded vertex objects for now
+    //
+    var vao : GLuint = undefined;
+    zgl.genVertexArrays(singleItemSlice(GLuint, &vao));
+    log("vao = {}", .{vao});
+    var buf_obj : extern struct { v: GLuint, e: GLuint } = undefined;
+    log("vbo = {}, ebo = {}", .{buf_obj.v, buf_obj.e});
+    zgl.genBuffers(structSlice(GLuint, &buf_obj));
+
+    {
+        glBindVertexArray(vao);
+        defer glBindVertexArray(0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, buf_obj.v);
+        defer glBindBuffer(GL_ARRAY_BUFFER, 0);
+        zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
+            0.5,   0.5, 0.0, // top right
+            0.5,  -0.5, 0.0, // bottom right
+            -0.5, -0.5, 0.0, // bottom left
+            -0.5,  0.5, 0.0, // top left
+        }, GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf_obj.e);
+        zgl.bufferData(GL_ELEMENT_ARRAY_BUFFER, GLuint, &[_]GLuint {
+            0, 1, 2, // first triangle
+            1, 2, 3, // second triangle
+        }, GL_STATIC_DRAW);
+
+        //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
+        //glEnableVertexAttribArray(0);
+    }
+}
+
+// TODO: this should be somewhere else, like std library
+fn singleItemSlice(comptime T: type, ref: *T) []T {
+    return @ptrCast([*]T, ref)[0..1];
+}
+// TODO: this should be somewhere else, like std library
+fn structSlice(comptime T: type, ref: anytype) []T {
+    const RefT = @TypeOf(ref.*);
+    std.debug.assert(@alignOf(RefT) >= @alignOf(T));
+    const len = @sizeOf(RefT) / @sizeOf(T);
+    std.debug.assert(len * @sizeOf(T) == @sizeOf(RefT));
+    return @ptrCast([*]T, ref)[0 .. len];
 }
 
 const ShaderKind = enum { vertex, fragment };
