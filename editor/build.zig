@@ -70,4 +70,6 @@ const gl_funcs = [_][]const u8 {
     "glBindBuffer",
     "glBufferData",
     "glVertexAttribPointer",
+    "glEnableVertexAttribArray",
+    "glPolygonMode",
 };

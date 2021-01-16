@@ -129,8 +129,11 @@ pub fn init() !void {
         }, GL_STATIC_DRAW);
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
-        //glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(0);
     }
+
+    // uncomment this call to draw in wireframe polygons.
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 }
 
 // TODO: this should be somewhere else, like std library

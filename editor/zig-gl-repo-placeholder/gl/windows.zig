@@ -16,6 +16,7 @@ pub extern "opengl32" fn glColor3f(red: GLfloat, green: GLfloat, blue: GLfloat) 
 pub extern "opengl32" fn glVertex2i(x: GLint, y: GLint) callconv(WINAPI) void;
 pub extern "opengl32" fn glEnd() callconv(WINAPI) void;
 pub extern "opengl32" fn glFlush() callconv(WINAPI) void;
+pub extern "opengl32" fn glPolygonMode(face: GLenum, mode: GLenum) void;
 
 /// Function pointer types for functions that must be loaded at runtime
 pub const RuntimeFnTypes = struct {
@@ -37,4 +38,9 @@ pub const RuntimeFnTypes = struct {
     pub const glBindBuffer = fn(target: GLenum, buffer: GLuint) void;
     pub const glBufferData = fn(target: GLenum, size: GLsizeiptr, data: *const c_void, usage: GLenum) void;
     pub const glVertexAttribPointer = fn(index: GLuint, size: GLint, type: GLenum, normalized: GLboolean, stride: GLsizei, pointer: ?*c_void) void;
+
+    pub const glEnableVertexAttribArray = fn(index: GLuint) void;
+    pub const glDisableVertexAttribArray = fn(index: GLuint) void;
+    pub const glEnableVertexArrayAttrib = fn(vaobj: GLuint, index: GLuint) void;
+    pub const glDisableVertexArrayAttrib = fn(vaobj: GLuint, index: GLuint) void;
 };
