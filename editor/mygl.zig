@@ -46,28 +46,6 @@ pub fn onWindowSize(width: u32, height: u32) void {
     glViewport(0, 0, @intCast(i32, width), @intCast(i32, height));
 }
 
-pub fn render(optional_gl_data: ?GLData) void {
-    log("render", .{});
-
-    glClearColor(0.2, 0.3, 0.3, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    if (optional_gl_data) |gl_data| {
-        //glUseProgram(gl_data.shader_prog);
-        //glBindVertex
-    } else {
-        // just a triangle
-        glBegin(GL_TRIANGLES);
-        glColor3f(1.0, 0.0, 0.0);
-        glVertex2i(0,  1);
-        glColor3f(0.0, 1.0, 0.0);
-        glVertex2i(-1, -1);
-        glColor3f(0.0, 0.0, 1.0);
-        glVertex2i(1, -1);
-        glEnd();
-        glFlush();
-    }
-}
-
 // TODO: does this fix line numbers in shader log? gl.zig.toZLinesStringLiteral ???
 const vertex_shader_src =
     \\#version 330 core
@@ -94,20 +72,23 @@ pub const GLData = struct {
 };
 
 pub fn init() !GLData {
-    const vertex_shader = try compileShader(.vertex, vertex_shader_src);
-    defer glDeleteShader(vertex_shader);
+    const prog = init: {
+        const vertex_shader = try compileShader(.vertex, vertex_shader_src);
+        defer glDeleteShader(vertex_shader);
 
-    const fragment_shader = try compileShader(.fragment, fragment_shader_src);
-    defer glDeleteShader(fragment_shader);
+        const fragment_shader = try compileShader(.fragment, fragment_shader_src);
+        defer glDeleteShader(fragment_shader);
 
-    const prog = glCreateProgram();
-    errdefer glDeleteProgram(prog);
+        const prog = glCreateProgram();
+        if (prog == 0) die(GlInitErrorTitle, "glCreateProgram failed", .{});
+        errdefer glDeleteProgram(prog);
 
-    if (prog == 0) die(GlInitErrorTitle, "glCreateProgram failed", .{});
-    glAttachShader(prog, vertex_shader);
-    glAttachShader(prog, fragment_shader);
-    glLinkProgram(prog);
-    try enforceProgramLinked(prog);
+        glAttachShader(prog, vertex_shader);
+        glAttachShader(prog, fragment_shader);
+        glLinkProgram(prog);
+        try enforceProgramLinked(prog);
+        break :init prog;
+    };
 
     //
     // hardcoded vertex objects for now
@@ -116,8 +97,8 @@ pub fn init() !GLData {
     zgl.genVertexArrays(singleItemSlice(GLuint, &vao));
     log("vao = {}", .{vao});
     var buf_obj : extern struct { v: GLuint, e: GLuint } = undefined;
-    log("vbo = {}, ebo = {}", .{buf_obj.v, buf_obj.e});
     zgl.genBuffers(structSlice(GLuint, &buf_obj));
+    log("vbo = {}, ebo = {}", .{buf_obj.v, buf_obj.e});
 
     {
         glBindVertexArray(vao);
@@ -146,6 +127,32 @@ pub fn init() !GLData {
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     return GLData { .shader_prog = prog, .vao = vao };
+}
+
+pub fn render(optional_gl_data: ?GLData) void {
+    log("render", .{});
+
+    glClearColor(0.2, 0.3, 0.3, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    if (optional_gl_data) |gl_data| {
+        glUseProgram(gl_data.shader_prog);
+        glBindVertexArray(gl_data.vao);
+        // this one is commented out for some reason?
+        //glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null);
+        // note: could unbind with glBindVertexArray(0);
+    } else {
+        // just a triangle
+        glBegin(GL_TRIANGLES);
+        glColor3f(1.0, 0.0, 0.0);
+        glVertex2i(0,  1);
+        glColor3f(0.0, 1.0, 0.0);
+        glVertex2i(-1, -1);
+        glColor3f(0.0, 0.0, 1.0);
+        glVertex2i(1, -1);
+        glEnd();
+        glFlush();
+    }
 }
 
 // TODO: this should be somewhere else, like std library

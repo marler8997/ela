@@ -19,6 +19,8 @@ pub extern "opengl32" fn glEnd() callconv(WINAPI) void;
 pub extern "opengl32" fn glFlush() callconv(WINAPI) void;
 pub extern "opengl32" fn glPolygonMode(face: GLenum, mode: GLenum) void;
 
+pub extern "opengl32" fn glDrawElements(mode: GLenum, count: GLsizei, type: GLenum, indices: ?*const c_void) void;
+
 /// Function pointer types for functions that must be loaded at runtime
 pub const RuntimeFnTypes = struct {
     pub const glCreateShader = fn(shaderType: GLenum) callconv(WINAPI) GLuint;
@@ -44,4 +46,5 @@ pub const RuntimeFnTypes = struct {
     pub const glDisableVertexAttribArray = fn(index: GLuint) void;
     pub const glEnableVertexArrayAttrib = fn(vaobj: GLuint, index: GLuint) void;
     pub const glDisableVertexArrayAttrib = fn(vaobj: GLuint, index: GLuint) void;
+    pub const glUseProgram = fn(program: GLuint) void;
 };

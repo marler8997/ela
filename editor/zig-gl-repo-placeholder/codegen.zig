@@ -11,8 +11,21 @@ pub const OpenGlCodegenStep = struct {
     b: *Builder,
     filename: []const u8,
     funcs: []const []const u8,
-    pub fn init(b: *Builder, named: struct { filename: []const u8, funcs: []const []const u8 }) OpenGlCodegenStep {
-        return .{
+    pub fn init(b: *Builder, named: struct { filename: []const u8, funcs: []const []const u8 }) !OpenGlCodegenStep {
+        // verify there are no duplicates in funcs
+        {
+            var func_map = StringHashMap(struct{}).init(b.allocator);
+            defer func_map.deinit();
+            for (named.funcs) |func| {
+                if (func_map.get(func)) |existing_func| {
+                    std.debug.warn("Error: OpenGL function '{s}' appears more than once in build.zig\n", .{func});
+                    return error.DuplicateOpenGLFunction;
+                }
+                try func_map.put(func, .{});
+            }
+        }
+        // TODO: check if there are duplicates in funcs??
+        return OpenGlCodegenStep {
             .step = Step.init(.Custom, "generate OpenGL bindings", b.allocator, make),
             .b = b,
             .filename = named.filename,

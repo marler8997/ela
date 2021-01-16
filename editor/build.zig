@@ -22,7 +22,7 @@ pub fn build(b: *Builder) !void {
     };
 
     const exe_gl_gen = try b.allocator.create(OpenGlCodegenStep);
-    exe_gl_gen.* = OpenGlCodegenStep.init(b, .{
+    exe_gl_gen.* = try OpenGlCodegenStep.init(b, .{
         .filename = "gl.generated.zig",
         .funcs = &gl_funcs,
     });
@@ -73,4 +73,6 @@ const gl_funcs = [_][]const u8 {
     "glVertexAttribPointer",
     "glEnableVertexAttribArray",
     "glPolygonMode",
+    "glUseProgram",
+    "glDrawElements",
 };

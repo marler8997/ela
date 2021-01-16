@@ -178,6 +178,8 @@ pub const GL_BYTE                           = 0x1400;
 pub const GL_UNSIGNED_BYTE                  = 0x1401;
 pub const GL_SHORT                          = 0x1402;
 pub const GL_UNSIGNED_SHORT                 = 0x1403;
+pub const GL_INT                            = 0x1404;
+pub const GL_UNSIGNED_INT                   = 0x1405;
 pub const GL_FLOAT                          = 0x1406;
 pub const GL_FIXED                          = 0x140C;
 
