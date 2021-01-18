@@ -186,22 +186,23 @@ pub const GLRect = struct {
         // NOTE: cannot unbind this until after calling glEnableVertexAttribArray?
         defer if (do_unbinds) glBindBuffer(GL_ARRAY_BUFFER, 0);
         zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
-            0.5,  0.5, 0.0, // top right
-            0.5, -0.5, 0.0, // bottom right
             -0.5, -0.5, 0.0, // bottom left
             -0.5,  0.5, 0.0, // top left
+            0.5, -0.5, 0.0, // bottom right
+            0.5,  0.5, 0.0, // top right
         }, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
+        glEnableVertexAttribArray(0);
+
+        // TODO: I don't need this element buffer, remove it, but I'm keeping it as an example for now
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.buf_objs[1]);
         // NOTE: cannot unbind this for some reason?
         // I saw this: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
         // however, it seems I can't unbind it even after unbinding the current VAO?
         //defer if (do_unbinds) glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         zgl.bufferData(GL_ELEMENT_ARRAY_BUFFER, GLuint, &[_]GLuint {
-            0, 1, 2, // first triangle
-            1, 2, 3, // second triangle
+            0, 1, 2, 3,
         }, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
-        glEnableVertexAttribArray(0);
         return self;
     }
     pub fn deinitTriangle(self: @This()) void {
@@ -211,7 +212,7 @@ pub const GLRect = struct {
     pub fn render(self: @This()) void {
         glBindVertexArray(self.vao);
         defer if (do_unbinds) glBindVertexArray(0);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null);
+        glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, null);
     }
 };
 

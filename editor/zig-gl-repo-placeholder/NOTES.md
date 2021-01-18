@@ -1,3 +1,9 @@
+# TODO
+
+* Go through https://learnopengl.com/In-Practice/Debugging
+
+
+
 https://learnopengl.com/Getting-started/Hello-Triangle
 
 The OpenGL pipeline has 6 stages, where the output of each stage is passed as input to the next stage.
