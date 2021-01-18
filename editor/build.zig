@@ -76,4 +76,6 @@ const gl_funcs = [_][]const u8 {
     "glUseProgram",
     "glDrawArrays",
     "glDrawElements",
+    "glGetUniformLocation",
+    "glUniform4f",
 };

@@ -88,9 +88,59 @@ So with this function, we can customize where the vertex attribute data comes fr
     * the offset of the data within the buffer
     * the stride of each element within the buffer
 
+> NOTE: There is a maximum number of vertex attributes we're allowed to declare limited by the hardware. OpenGL guarantees there are always at least 16 4-component vertex attributes available, but some hardware may allow for more which you can retrieve by querying GL_MAX_VERTEX_ATTRIBS with `glGetIntegerv`.
 
 # Vertex Array Object (VAO)
 
 A "vertex array object" (VAO) can also be bound like a VBO, and any vertex attribute calls will be stored inside the VAO.
 
 # Element Buffer Objects
+
+
+
+# Shaders
+
+Types:
+
+```
+int, float, double, uint, bool
+```
+
+### Vectors
+
+```
+vecN: vector of float
+bvecN: vector of bool
+ivecN: vector of int
+uvecN: vector of uint
+dvecN: vector or double
+```
+
+Vector elements can be accessed via any of these fields:
+
+Domain         | 0 | 1 | 2 | 3
+---------------|---|---|---|---
+space          | x | y | z | w
+color          | r | g | b | a
+texture coords | s | t | p | q
+
+Because the fields are always one letter, they can be "swizzled".
+
+```glsl
+vec2 someVec;
+vec4 differentVec = someVec.xyxx;
+vec3 anotherVec = differentVec.zyw;
+vec4 otherVec = someVec.xxxx + anotherVec.yxzy;
+```
+
+Vectors can also be created via constructors
+```glsl
+vec2 vect = vec2(0.5, 0.7);
+vec4 result = vec4(vect, 0.0, 0.0);
+vec4 otherResult = vec4(result.xyz, 1.0);
+```
+
+# Ins and Outs
+
+
+We can send data from the vertex shader to the fragment shader by declaring outs and ins.
