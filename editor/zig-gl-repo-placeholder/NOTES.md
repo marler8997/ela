@@ -38,3 +38,53 @@ The fourth parameter of `glBufferData`
 * GL_STREAM_DRAW: the data is set only once and used by the GPU at most a few times.
 * GL_STATIC_DRAW: the data is set only once and used many times.
 * GL_DYNAMIC_DRAW: the data is changed a lot and used many times.
+
+### Vertex Attributes
+
+In a vertex shader, the data for each vertex is defined by "vertex attributes".  Here is an example of a vertex attribute declared in a vertex shader:
+
+```
+layout (location = 0) in vec3 aPos;
+```
+
+And here is an example of data that could be input to this vertex attribute:
+```c
+float vertices[] = {
+     0.5f,  0.5f, 0.0f,  // top right
+     0.5f, -0.5f, 0.0f,  // bottom right
+    -0.5f, -0.5f, 0.0f,  // bottom left
+    -0.5f,  0.5f, 0.0f   // top left
+};
+glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+```
+
+Note that the `location = 0` in the vertex shader is used by the code later to reference that attribute, this is called the "index" of the attribute. The `glVertexAttributePointer` function will configure how a vbo is linked to a vertex attribute.
+
+In this example, we can configure the `vertices` format with the following
+```
+// NOTE: glVertexAttribute configures the format for whatever VBO is currently bound to GL_ARRAY_BUFFER
+glVertexAttribPointer(
+    0, // index: configuring the vertex attribute at location 0
+    3, // size: the number of components per attribute, i.e. a vec3 takes 3 floats
+    GL_FLOAT, // 32-bit floats (note: all vec* types in GLSL are vectors of 32-bit floats)
+    GL_FALSE, // only applicable to integer types, normalizes them to the -1 to 1 or 0 to 1 range
+    (0)   OR  (sizeof(float)*3), // if 0, means the attribute data is "tightly packed", otherwise,
+                                 // it's the byte distance between attributes
+    0, // this is the offset into the buffer where the attribute data starts
+);
+// the next call enables vertex attribute 0, not sure what this means exactly???
+glEnableVertexAttribArray(0);
+```
+
+So with this function, we can customize where the vertex attribute data comes from by specifing the
+    * type of the data (note: is this completely redundant with the type in the vertex shader?)
+    * the number of components (note: is this completely redundant with the type in the vertex shader?)
+    * the offset of the data within the buffer
+    * the stride of each element within the buffer
+
+
+# Vertex Array Object (VAO)
+
+A "vertex array object" (VAO) can also be bound like a VBO, and any vertex attribute calls will be stored inside the VAO.
+
+# Element Buffer Objects

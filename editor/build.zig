@@ -74,5 +74,6 @@ const gl_funcs = [_][]const u8 {
     "glEnableVertexAttribArray",
     "glPolygonMode",
     "glUseProgram",
+    "glDrawArrays",
     "glDrawElements",
 };

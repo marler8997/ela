@@ -19,6 +19,7 @@ pub extern "opengl32" fn glEnd() callconv(WINAPI) void;
 pub extern "opengl32" fn glFlush() callconv(WINAPI) void;
 pub extern "opengl32" fn glPolygonMode(face: GLenum, mode: GLenum) void;
 
+pub extern "opengl32" fn glDrawArrays(mode: GLenum, first: GLint, count: GLsizei) void;
 pub extern "opengl32" fn glDrawElements(mode: GLenum, count: GLsizei, type: GLenum, indices: ?*const c_void) void;
 
 /// Function pointer types for functions that must be loaded at runtime

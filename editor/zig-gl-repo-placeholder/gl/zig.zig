@@ -97,6 +97,9 @@ pub fn wrap(comptime generated_gl: anytype) type { return struct {
     pub fn genBuffers(objs: []GLuint) void {
         glGenBuffers(@intCast(GLsizei, objs.len), objs.ptr);
     }
+    pub fn deleteBuffers(objs: []GLuint) void {
+        glDeleteBuffers(@intCast(GLsizei, objs.len), objs.ptr);
+    }
 
     pub fn bufferData(target: GLenum, comptime T: type, data: []const T, usage: GLenum) void {
         glBufferData(target, @intCast(GLsizeiptr, data.len * @sizeOf(T)), data.ptr, usage);

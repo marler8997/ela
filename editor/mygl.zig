@@ -47,6 +47,8 @@ pub fn onWindowSize(width: u32, height: u32) void {
 }
 
 // TODO: does this fix line numbers in shader log? gl.zig.toZLinesStringLiteral ???
+// NOTE: this is pretty much the simplest 3d vertex shader we can write, it just passes
+//       the points it gets through to the next stage of the pipeline.
 const vertex_shader_src =
     \\#version 330 core
     \\layout (location = 0) in vec3 aPos;
@@ -68,7 +70,7 @@ const fragment_shader_src =
 
 pub const GLData = struct {
     shader_prog: GLuint,
-    vao: GLuint,
+    triangle: GLTriangle,
 };
 
 pub fn init() !GLData {
@@ -93,42 +95,43 @@ pub fn init() !GLData {
     //
     // hardcoded vertex objects for now
     //
-    var vao : GLuint = undefined;
-    zgl.genVertexArrays(singleItemSlice(GLuint, &vao));
-    log("vao = {}", .{vao});
-    var buf_obj : extern struct { v: GLuint, e: GLuint } = undefined;
-    zgl.genBuffers(structSlice(GLuint, &buf_obj));
-    log("vbo = {}, ebo = {}", .{buf_obj.v, buf_obj.e});
+    //var vao : GLuint = undefined;
+    //zgl.genVertexArrays(singleItemSlice(GLuint, &vao));
+    //log("vao = {}", .{vao});
+    ////var buf_obj : extern struct { v: GLuint, e: GLuint } = undefined;
+    ////zgl.genBuffers(structSlice(GLuint, &buf_obj));
+    ////log("vbo = {}, ebo = {}", .{buf_obj.v, buf_obj.e});
+//
+    //glBindVertexArray(vao);
+    // NOTE: could unbind buffer with this
+    //defer glBindVertexArray(0);
 
-    {
-        glBindVertexArray(vao);
-        // NOTE: could unbind buffer with this
-        //defer glBindVertexArray(0);
+    const triangle = GLTriangle.init();
+    log("triangle vao={} vbo={}", .{triangle.vao, triangle.vbo});
 
-        glBindBuffer(GL_ARRAY_BUFFER, buf_obj.v);
-        zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
-             0.5,  0.5, 0.0, // top right
-             0.5, -0.5, 0.0, // bottom right
-            -0.5, -0.5, 0.0, // bottom left
-            -0.5,  0.5, 0.0, // top left
-        }, GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf_obj.e);
-        zgl.bufferData(GL_ELEMENT_ARRAY_BUFFER, GLuint, &[_]GLuint {
-            0, 1, 2, // first triangle
-            1, 2, 3, // second triangle
-        }, GL_STATIC_DRAW);
-        // NOTE: could unbind buffer with this
-        //glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
-        glEnableVertexAttribArray(0);
-    }
+    //glBindBuffer(GL_ARRAY_BUFFER, buf_obj.v);
+    //zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
+    //     0.5,  0.5, 0.0, // top right
+    //     0.5, -0.5, 0.0, // bottom right
+    //    -0.5, -0.5, 0.0, // bottom left
+    //    -0.5,  0.5, 0.0, // top left
+    //}, GL_STATIC_DRAW);
+//
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf_obj.e);
+    //zgl.bufferData(GL_ELEMENT_ARRAY_BUFFER, GLuint, &[_]GLuint {
+    //    0, 1, 2, // first triangle
+    //    1, 2, 3, // second triangle
+    //}, GL_STATIC_DRAW);
+    //// NOTE: could unbind buffer with this
+    ////glBindBuffer(GL_ARRAY_BUFFER, 0);
+//
+    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
+    //glEnableVertexAttribArray(0);
 
     // uncomment this call to draw in wireframe polygons.
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    return GLData { .shader_prog = prog, .vao = vao };
+    return GLData { .shader_prog = prog, .triangle = triangle };
 }
 
 pub fn render(optional_gl_data: ?GLData) void {
@@ -138,10 +141,9 @@ pub fn render(optional_gl_data: ?GLData) void {
     glClear(GL_COLOR_BUFFER_BIT);
     if (optional_gl_data) |gl_data| {
         glUseProgram(gl_data.shader_prog);
-        glBindVertexArray(gl_data.vao);
         // this one is commented out for some reason?
-        //glDrawArrays(GL_TRIANGLES, 0, 6);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null);
+        gl_data.triangle.render();
+        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null);
         // note: could unbind with glBindVertexArray(0);
     } else {
         // just a triangle
@@ -156,6 +158,44 @@ pub fn render(optional_gl_data: ?GLData) void {
     }
     glFlush();
 }
+
+const do_unbinds = true;
+
+pub const GLTriangle = struct {
+    vao: GLuint,
+    vbo: GLuint,
+    pub fn init() GLTriangle {
+        var vao : GLuint = undefined;
+        zgl.genVertexArrays(singleItemSlice(GLuint, &vao));
+        glBindVertexArray(vao);
+        defer if (do_unbinds) glBindVertexArray(0);
+
+        var vbo : GLuint = undefined;
+        zgl.genBuffers(singleItemSlice(GLuint, &vbo));
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        defer if (do_unbinds) glBindBuffer(GL_ARRAY_BUFFER, 0);
+        zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
+            -0.5, -0.5, 0.0, // left
+             0.5, -0.5, 0.0, // right
+             0.0,  0.5, 0.0, // top
+        }, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
+        glEnableVertexAttribArray(0);
+        return GLTriangle { .vao = vao, .vbo = vbo };
+    }
+    pub fn deinitTriangle(self: @This()) void {
+        zgl.deleteBuffers(singleItemSlice(GLuint, &self.vbo));
+        zgl.deleteVertexArrays(singleItemSlice(GLuint, &self.vao));
+    }
+    pub fn render(self: @This()) void {
+        glBindVertexArray(self.vao);
+        defer if (do_unbinds) glBindVertexArray(0);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+    }
+};
+
+
+
 
 // TODO: this should be somewhere else, like std library
 fn singleItemSlice(comptime T: type, ref: *T) []T {
