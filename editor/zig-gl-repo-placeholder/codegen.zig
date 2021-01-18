@@ -11,6 +11,9 @@ pub const OpenGlCodegenStep = struct {
     b: *Builder,
     filename: []const u8,
     funcs: []const []const u8,
+    // TODO: OpenGL Debugging
+    //       maybe I can add a parameter like "check_errors" which will generate code that
+    //       checks every opengl function for errors?
     pub fn init(b: *Builder, named: struct { filename: []const u8, funcs: []const []const u8 }) !OpenGlCodegenStep {
         // verify there are no duplicates in funcs
         {

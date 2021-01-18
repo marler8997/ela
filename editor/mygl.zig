@@ -58,7 +58,7 @@ const vertex_shader_src =
     \\}
 ;
 
-const fragment_shader_src =
+const orange_fragment_shader_src =
     \\#version 330 core
     \\out vec4 FragColor;
     \\void main()
@@ -71,6 +71,7 @@ const fragment_shader_src =
 pub const GLData = struct {
     shader_prog: GLuint,
     triangle: GLTriangle,
+    rect: GLRect,
 };
 
 pub fn init() !GLData {
@@ -78,60 +79,33 @@ pub fn init() !GLData {
         const vertex_shader = try compileShader(.vertex, vertex_shader_src);
         defer glDeleteShader(vertex_shader);
 
-        const fragment_shader = try compileShader(.fragment, fragment_shader_src);
-        defer glDeleteShader(fragment_shader);
+        const orange_fragment_shader = try compileShader(.fragment, orange_fragment_shader_src);
+        defer glDeleteShader(orange_fragment_shader);
 
         const prog = glCreateProgram();
         if (prog == 0) die(GlInitErrorTitle, "glCreateProgram failed", .{});
         errdefer glDeleteProgram(prog);
 
         glAttachShader(prog, vertex_shader);
-        glAttachShader(prog, fragment_shader);
+        glAttachShader(prog, orange_fragment_shader);
         glLinkProgram(prog);
         try enforceProgramLinked(prog);
         break :init prog;
     };
 
-    //
-    // hardcoded vertex objects for now
-    //
-    //var vao : GLuint = undefined;
-    //zgl.genVertexArrays(singleItemSlice(GLuint, &vao));
-    //log("vao = {}", .{vao});
-    ////var buf_obj : extern struct { v: GLuint, e: GLuint } = undefined;
-    ////zgl.genBuffers(structSlice(GLuint, &buf_obj));
-    ////log("vbo = {}, ebo = {}", .{buf_obj.v, buf_obj.e});
-//
-    //glBindVertexArray(vao);
-    // NOTE: could unbind buffer with this
-    //defer glBindVertexArray(0);
-
     const triangle = GLTriangle.init();
     log("triangle vao={} vbo={}", .{triangle.vao, triangle.vbo});
-
-    //glBindBuffer(GL_ARRAY_BUFFER, buf_obj.v);
-    //zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
-    //     0.5,  0.5, 0.0, // top right
-    //     0.5, -0.5, 0.0, // bottom right
-    //    -0.5, -0.5, 0.0, // bottom left
-    //    -0.5,  0.5, 0.0, // top left
-    //}, GL_STATIC_DRAW);
-//
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf_obj.e);
-    //zgl.bufferData(GL_ELEMENT_ARRAY_BUFFER, GLuint, &[_]GLuint {
-    //    0, 1, 2, // first triangle
-    //    1, 2, 3, // second triangle
-    //}, GL_STATIC_DRAW);
-    //// NOTE: could unbind buffer with this
-    ////glBindBuffer(GL_ARRAY_BUFFER, 0);
-//
-    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
-    //glEnableVertexAttribArray(0);
+    const rect = GLRect.init();
+    log("rect vao={} vbo={} ebo={}", .{rect.vao, rect.buf_objs[0], rect.buf_objs[1]});
 
     // uncomment this call to draw in wireframe polygons.
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    return GLData { .shader_prog = prog, .triangle = triangle };
+    return GLData {
+        .shader_prog = prog,
+        .triangle = triangle,
+        .rect = rect
+    };
 }
 
 pub fn render(optional_gl_data: ?GLData) void {
@@ -141,10 +115,8 @@ pub fn render(optional_gl_data: ?GLData) void {
     glClear(GL_COLOR_BUFFER_BIT);
     if (optional_gl_data) |gl_data| {
         glUseProgram(gl_data.shader_prog);
-        // this one is commented out for some reason?
-        gl_data.triangle.render();
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null);
-        // note: could unbind with glBindVertexArray(0);
+        //gl_data.triangle.render();
+        gl_data.rect.render();
     } else {
         // just a triangle
         glBegin(GL_TRIANGLES);
@@ -165,14 +137,16 @@ pub const GLTriangle = struct {
     vao: GLuint,
     vbo: GLuint,
     pub fn init() GLTriangle {
-        var vao : GLuint = undefined;
-        zgl.genVertexArrays(singleItemSlice(GLuint, &vao));
-        glBindVertexArray(vao);
+        var self : GLTriangle = .{
+            .vao = undefined,
+            .vbo = undefined,
+        };
+        zgl.genVertexArrays(singleItemSlice(GLuint, &self.vao));
+        glBindVertexArray(self.vao);
         defer if (do_unbinds) glBindVertexArray(0);
 
-        var vbo : GLuint = undefined;
-        zgl.genBuffers(singleItemSlice(GLuint, &vbo));
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        zgl.genBuffers(singleItemSlice(GLuint, &self.vbo));
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo);
         defer if (do_unbinds) glBindBuffer(GL_ARRAY_BUFFER, 0);
         zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
             -0.5, -0.5, 0.0, // left
@@ -181,7 +155,7 @@ pub const GLTriangle = struct {
         }, GL_STATIC_DRAW);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
         glEnableVertexAttribArray(0);
-        return GLTriangle { .vao = vao, .vbo = vbo };
+        return self;
     }
     pub fn deinitTriangle(self: @This()) void {
         zgl.deleteBuffers(singleItemSlice(GLuint, &self.vbo));
@@ -195,6 +169,51 @@ pub const GLTriangle = struct {
 };
 
 
+pub const GLRect = struct {
+    vao: GLuint,
+    buf_objs: [2]GLuint,
+    pub fn init() GLRect {
+        var self : GLRect = .{
+            .vao = undefined,
+            .buf_objs = undefined,
+        };
+        zgl.genVertexArrays(singleItemSlice(GLuint, &self.vao));
+        glBindVertexArray(self.vao);
+        defer if (do_unbinds) glBindVertexArray(0);
+
+        zgl.genBuffers(structSlice(GLuint, &self.buf_objs));
+        glBindBuffer(GL_ARRAY_BUFFER, self.buf_objs[0]);
+        // NOTE: cannot unbind this until after calling glEnableVertexAttribArray?
+        defer if (do_unbinds) glBindBuffer(GL_ARRAY_BUFFER, 0);
+        zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
+            0.5,  0.5, 0.0, // top right
+            0.5, -0.5, 0.0, // bottom right
+            -0.5, -0.5, 0.0, // bottom left
+            -0.5,  0.5, 0.0, // top left
+        }, GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.buf_objs[1]);
+        // NOTE: cannot unbind this for some reason?
+        // I saw this: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+        // however, it seems I can't unbind it even after unbinding the current VAO?
+        //defer if (do_unbinds) glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        zgl.bufferData(GL_ELEMENT_ARRAY_BUFFER, GLuint, &[_]GLuint {
+            0, 1, 2, // first triangle
+            1, 2, 3, // second triangle
+        }, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
+        glEnableVertexAttribArray(0);
+        return self;
+    }
+    pub fn deinitTriangle(self: @This()) void {
+        zgl.deleteBuffers(&self.buf_objs);
+        zgl.deleteVertexArrays(singleItemSlice(GLuint, &self.vao));
+    }
+    pub fn render(self: @This()) void {
+        glBindVertexArray(self.vao);
+        defer if (do_unbinds) glBindVertexArray(0);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, null);
+    }
+};
 
 
 // TODO: this should be somewhere else, like std library
