@@ -102,13 +102,13 @@ pub fn init() !GLData {
 
     {
         glBindVertexArray(vao);
-        defer glBindVertexArray(0);
+        // NOTE: could unbind buffer with this
+        //defer glBindVertexArray(0);
 
         glBindBuffer(GL_ARRAY_BUFFER, buf_obj.v);
-        defer glBindBuffer(GL_ARRAY_BUFFER, 0);
         zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
-            0.5,   0.5, 0.0, // top right
-            0.5,  -0.5, 0.0, // bottom right
+             0.5,  0.5, 0.0, // top right
+             0.5, -0.5, 0.0, // bottom right
             -0.5, -0.5, 0.0, // bottom left
             -0.5,  0.5, 0.0, // top left
         }, GL_STATIC_DRAW);
@@ -118,6 +118,8 @@ pub fn init() !GLData {
             0, 1, 2, // first triangle
             1, 2, 3, // second triangle
         }, GL_STATIC_DRAW);
+        // NOTE: could unbind buffer with this
+        //glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
         glEnableVertexAttribArray(0);
@@ -151,8 +153,8 @@ pub fn render(optional_gl_data: ?GLData) void {
         glColor3f(0.0, 0.0, 1.0);
         glVertex2i(1, -1);
         glEnd();
-        glFlush();
     }
+    glFlush();
 }
 
 // TODO: this should be somewhere else, like std library

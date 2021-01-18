@@ -155,8 +155,8 @@ fn WindowProc(hWnd: win.HWND, uMsg: u32, wParam: win.WPARAM, lParam: win.LPARAM)
             return 0;
         },
         win.WM_PAINT => {
-            //mygl.render(global_gl_data);
-            mygl.render(null);
+            mygl.render(global_gl_data);
+            //mygl.render(null);
             var ps: win.PAINTSTRUCT = undefined;
             const hdc = win.BeginPaint(hWnd, &ps);
             // All painting occurs here, between BeginPaint and EndPaint.
