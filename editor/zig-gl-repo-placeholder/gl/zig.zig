@@ -105,3 +105,61 @@ pub fn wrap(comptime generated_gl: anytype) type { return struct {
         glBufferData(target, @intCast(GLsizeiptr, data.len * @sizeOf(T)), data.ptr, usage);
     }
 };}
+
+
+
+///!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+/// The following is just an idea I have, but its not flushed out yet
+///!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///
+/// How can I keep the shader vertex attributes and gl code that links the data to the attributes in sync?
+/// In other words, how do I find errors between the shader and the program code at compile time?
+///
+/// One idea is to configure the vertex attributes and make them apart of the type system?
+///
+/// Example:
+/// const shader_vertex_attrs = [_]VertexAttr {
+///     .{ .type = GL_FLOAT, .count = ._3, .shader_name = "pos" },
+/// };
+///
+///
+pub const VertexAttrCount = enum { _1, _2, _3, _4 };
+
+pub const VertexAttr = struct {
+    type: gl.bits.GLenum,
+    count: VertexAttrCount,
+    shader_name: []const u8,
+
+    pub fn init(type: gl.bits.GLenum, count: VertexAttrCount, shader_name: []const u8) VertexAttr {
+        return .{
+            .type = type,
+            .count = count,
+            .shader_name = shader_name,
+        };
+    }
+    pub fn shaderType(self: @This()) []const u8 {
+        switch (self.type) {
+            gl.bits.GL_FLOAT => return switch (self.count) {
+                ._1 => "vec1", ._2 => "vec2", ._3 => "vec3", ._4 => "vec4",
+            },
+            else => @panic("here"),
+        }
+    }
+};
+
+pub const VertexAttrs = struct {
+    arr: []const VertexAttr,
+    pub fn init(arr: []const VertexAttr) VertexAttrs { return .{ .arr = arr }; }
+    pub fn dumpShader(self: @This(), writer: anytype) !void {
+        for (self.arr) |attr, i| {
+            try writer.print("layout (location = {}) in {s} {s};\n", .{i, attr.shaderType(), attr.shader_name});
+        }
+    }
+};
+
+test "VertexAttrs" {
+    const attrs = VertexAttrs.init(&[_]VertexAttr {
+        .{ .type = gl.bits.GL_FLOAT, .count = ._3, .shader_name = "pos" },
+    });
+    try attrs.dumpShader(std.io.getStdOut().writer());
+}
