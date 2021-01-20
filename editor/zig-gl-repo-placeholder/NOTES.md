@@ -96,14 +96,30 @@ A "vertex array object" (VAO) can also be bound like a VBO, and any vertex attri
 
 # Element Buffer Objects
 
+Element Buffer Objects contain indices to vertecies from a VBO (Vertex Buffer Object).  This is analogous to a bitmap image where there is a color table and the image itself is encoded as indices into the color table.  Like a bitmap, the vbo (vertex buffer object) is a table of vertices that are indexed by the ebo.
 
+Example:
+```
+// Setting data for an ebo
+glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+glBufferData(GL_ELEMENT_ARRAY_BUFFER, ...);
+
+// ...
+
+// Rendering an ebo
+glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, null);
+```
 
 # Shaders
 
 Types:
 
 ```
-int, float, double, uint, bool
+bool: how many bits?
+int: 32-bit signed integer
+uint: 32-bit unsigned integer
+float: 32-bit float
+double: 64-bit float
 ```
 
 ### Vectors
@@ -144,3 +160,100 @@ vec4 otherResult = vec4(result.xyz, 1.0);
 
 
 We can send data from the vertex shader to the fragment shader by declaring outs and ins.
+
+# Textures
+
+> TODO: go through this tutorial: https://learnopengl.com/Getting-started/Textures
+
+I'd like to go through the Transformations tutorial first.
+
+NOTE: there seems to be a nice single-file image library here: https://github.com/nothings/stb
+
+
+# Vector and Matrix Math
+
+https://learnopengl.com/Getting-started/Transformations
+
+## Vector Multiplication
+
+2 kinds, "Dot Product" and "Cross Product".
+
+#### Dot Product
+
+Calculated by adding the components from each vector multiplied together.
+
+```
+[1 2 3] DOT_PRODUCT [4 5 6] = (1 * 4) + (2 * 5) + (3 * 6) = 32
+```
+
+Note that the dot product is also equal to
+
+```
+Length(V1) * Length(V2) * cos(AngleBetween(V1, V2))
+```
+
+Note that this also means that if `V1` and `V2` are unit vectors, then their dot product is equal to `cos(AngleBetween(V1,V2))`.  This make the dot product an easy way to see if vectors are orthogonal, since the cos of their angle would be equal to 0.
+
+The way to visualize the dot product is to thing of it in 2 stages.  Stage 1, think of each component as a vector along its axis, then scale each vector using the corresponding value from the second vector (i.e. multiple them together).  Then, take all these vectors and line them up on a number line front to back, keeping the negative positive direction,  the result will be the final position of the last vector.
+
+#### Cross Product
+
+This product is only defined in 3 dimensions.  This one is a bit complex.
+
+## Matrices
+
+Matrices are ordered by Height/Row, then Width/Column.
+
+`2x3` matrix:
+```
+  1   2   3
+  4   5   6
+```
+
+The element at index `(0,2)` is `3` (row 0, column 3).
+
+* Multiplying 2 matrices together requires that width of the left matrix is equal to the height of the right matrix.
+* Matrix multiplication is NOT COMMUTATIVE
+* Multiplying a matrix by a vector requires that the width of the matrix equals the size of the vector, and results in a vector with a size equal to the height of the matrix.
+
+##### Matrix to Scale a Vector
+
+| S1 |  0 |  0 |  0 |
+|  0 | S2 |  0 |  0 |
+|  0 |  0 | S3 |  0 |
+|  0 |  0 |  0 | S4 |
+
+> Note: we can put `1` for `S4`, this will be useful for some reason
+
+##### Matrix to translate a 3d Vector
+
+If our 3d vector is represented as a 4d vector like this `[x y z 1]` (with a `1` for the last element), then we can translate it by multiplying it with this matrix:
+
+|  1 |  0 |  0 | T1 |
+|  0 |  1 |  0 | T2 |
+|  0 |  0 |  1 | T3 |
+|  0 |  0 |  0 |  1 |
+
+The resulting vector will be `[ x+T1  y+T2  z+T3  1]`.
+
+##### Matrix to Scale and Tralsate a 3d Vector at the same time
+
+If our 3d vector is represented as a 4d vector like this `[x y z 1]` (with a `1` for the last element), then we can translate it and scale it at the same time by multiplying it with this matrix:
+
+| S1 |  0 |  0 | T1 |
+|  0 | S2 |  0 | T2 |
+|  0 |  0 | S3 | T3 |
+|  0 |  0 |  0 |  1 |
+
+The resulting vector will be `[ (S1*x)+T1  (S2*y)+T2  (S3*z)+T3  1]`.
+
+##### Rotation
+
+There are also matrices to rotate about the 3 axis.  Fill in more details later.
+
+
+# Coordinate Systems
+
+https://learnopengl.com/Getting-started/Coordinate-Systems
+
+> TODO: fill in
