@@ -256,4 +256,57 @@ There are also matrices to rotate about the 3 axis.  Fill in more details later.
 
 https://learnopengl.com/Getting-started/Coordinate-Systems
 
-> TODO: fill in
+
+> OpenGL expects all the vertices, that we want to become visible, to be in normalized device coordinates after each vertex shader run. That is, the x, y and z coordinates of each vertex should be between `-1.0` and `1.0`; coordinates outside this range will not be visible. What we usually do, is specify the coordinates in a range (or space) we determine ourselves and in the vertex shader transform these coordinates to normalized device coordinates (NDC). These NDC are then given to the rasterizer to transform them to 2D coordinates/pixels on your screen.
+> Transforming coordinates to NDC is usually accomplished in a step-by-step fashion where we transform an object's vertices to several coordinate systems before finally transforming them to NDC. The advantage of transforming them to several intermediate coordinate systems is that some operations/calculations are easier in certain coordinate systems as will soon become apparent. There are a total of 5 different coordinate systems that are of importance to us:
+
+* Local Space (or Object space)
+* World Space
+* View Space (or Eye space)
+* Clip Space
+* Screen Space
+
+Those are all a different state at which our vertices will be transformed in before finally ending up as fragments.
+
+#### Stage 1: Local Space (Object Space)
+
+Vertices define the shape of an object located at the origin.
+
+The vertices are multipled by the "Model Matrix" (rotated/translated/scaled) to get into "World Space".
+
+#### Stage 2: World Space
+
+Vertices define many objects in a global coordinate system relative to some arbitrary origin.  Within this system a camera position exists and is used to transform vertices for the next stage.  The vertices are multiplied by the "View Matrix" to transform them to positions as seem from the camera's perspective.
+
+#### Stage 3: View Space (Eye Space)
+
+Vertices define all the objects from the camera's perspective.  At this stage vertices are multiplied by the "Projection Matrix" and clipped within the `-1.0` and `1.0` range for each axis to enter the "Clip Space".
+
+#### Stage 4: Clip Space
+
+Vertices define all the object from the camera's perspective and with projection/clipping applied.  These coordinates are translated to the coordinate range defined by glViewport and send tto the rasterizer to be turned into fragments.
+
+#### Stage 5: Screen Space
+
+Vertices have been translated to positions within the `glViewport` coordinate range.
+
+
+These stages give the following equation for translating local vertices into clip space vertices:
+
+```
+Vclip = Mprojection * Mview * Mmodel * Vlocal
+```
+
+
+The reason for having all these different stages is that it makes certain operations easy to do so long as they are in the correct stage.  For example, its much easier to rotate an object in "Local Space" than "World Space".
+
+
+### Projection Types
+
+#### Orthographic Projection
+
+The clip space is defined by a width/length/height and all vertices within this cube are visible (i.e. translated to NDC coordinates).
+
+> TODO: document the layout of an ortho projection matrix, check out https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/orthographic-projection-matrix
+
+
