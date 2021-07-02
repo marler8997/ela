@@ -20,7 +20,7 @@ pub const OpenGlCodegenStep = struct {
             var func_map = StringHashMap(struct{}).init(b.allocator);
             defer func_map.deinit();
             for (named.funcs) |func| {
-                if (func_map.get(func)) |existing_func| {
+                if (func_map.get(func)) |_| {
                     std.debug.warn("Error: OpenGL function '{s}' appears more than once in build.zig\n", .{func});
                     return error.DuplicateOpenGLFunction;
                 }
@@ -29,7 +29,7 @@ pub const OpenGlCodegenStep = struct {
         }
         // TODO: check if there are duplicates in funcs??
         return OpenGlCodegenStep {
-            .step = Step.init(.Custom, "generate OpenGL bindings", b.allocator, make),
+            .step = Step.init(.custom, "generate OpenGL bindings", b.allocator, make),
             .b = b,
             .filename = named.filename,
             .funcs = named.funcs,

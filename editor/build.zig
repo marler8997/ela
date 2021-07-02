@@ -3,7 +3,9 @@ const Builder = std.build.Builder;
 
 const zig_gl_repo = "zig-gl-repo-placeholder";
 
-const OpenGlCodegenStep = @import(zig_gl_repo ++ std.fs.path.sep_str ++ "codegen.zig").OpenGlCodegenStep;
+// This no longer works because imports must be string literals
+//const OpenGlCodegenStep = @import(zig_gl_repo ++ std.fs.path.sep_str ++ "codegen.zig").OpenGlCodegenStep;
+const OpenGlCodegenStep = @import("zig-gl-repo-placeholder/codegen.zig").OpenGlCodegenStep;
 
 pub fn build(b: *Builder) !void {
     // Standard target options allows the person running `zig build` to choose
@@ -18,7 +20,7 @@ pub fn build(b: *Builder) !void {
 
     const gl_pkg = std.build.Pkg {
         .name = "gl",
-        .path = zig_gl_repo ++ std.fs.path.sep_str ++ "gl.zig"
+        .path = .{ .path = zig_gl_repo ++ std.fs.path.sep_str ++ "gl.zig" },
     };
 
     const exe_gl_gen = try b.allocator.create(OpenGlCodegenStep);

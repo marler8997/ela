@@ -72,7 +72,6 @@ pub fn wrap(comptime generated_gl: anytype) type { return struct {
         const log_str = try allocator.alloc(u8, @intCast(usize, log_len));
         errdefer allocatof.free(log_str);
 
-        var info_len : GLsizei = 0;
         glGetShaderInfoLog(shader, log_len, null, log_str.ptr);
         std.debug.assert(log_str[@intCast(usize, log_len) - 1] == 0);
         return log_str[0 .. @intCast(usize, log_len) - 1 :0];
@@ -85,7 +84,6 @@ pub fn wrap(comptime generated_gl: anytype) type { return struct {
         const log_str = try allocator.alloc(u8, @intCast(usize, log_len));
         errdefer allocatof.free(log_str);
 
-        var info_len : GLsizei = 0;
         glGetProgramInfoLog(program, log_len, null, log_str.ptr);
         std.debug.assert(log_str[@intCast(usize, log_len) - 1] == 0);
         return log_str[0 .. @intCast(usize, log_len) - 1 :0];
@@ -126,13 +124,13 @@ pub fn wrap(comptime generated_gl: anytype) type { return struct {
 pub const VertexAttrCount = enum { _1, _2, _3, _4 };
 
 pub const VertexAttr = struct {
-    type: gl.bits.GLenum,
+    type_: gl.bits.GLenum,
     count: VertexAttrCount,
     shader_name: []const u8,
 
-    pub fn init(type: gl.bits.GLenum, count: VertexAttrCount, shader_name: []const u8) VertexAttr {
+    pub fn init(type_: gl.bits.GLenum, count: VertexAttrCount, shader_name: []const u8) VertexAttr {
         return .{
-            .type = type,
+            .type_ = type_,
             .count = count,
             .shader_name = shader_name,
         };

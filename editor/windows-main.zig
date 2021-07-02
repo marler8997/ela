@@ -31,6 +31,7 @@ const GraphicsErrorTitle = T("Graphics Setup Error");
 
 
 pub fn panic(msg: []const u8, stacktrace: ?*std.builtin.StackTrace) noreturn {
+    _ = stacktrace;
     //const msg_buf = std.heap.page_allocator.alloc(u8, 300) catch @panic("allocation failed for panic error message");
     //const msg_a = std.fmt.bufPrint(msg_buf, msg_fmt, msg_args) catch @panic("bufPrint failed for panic error message");
     if (common.global_log_open) {
@@ -159,6 +160,7 @@ fn WindowProc(hWnd: win.HWND, uMsg: u32, wParam: win.WPARAM, lParam: win.LPARAM)
             var ps: win.PAINTSTRUCT = undefined;
             const hdc = win.BeginPaint(hWnd, &ps);
             // All painting occurs here, between BeginPaint and EndPaint.
+            _ = hdc;
             //_ = win.FillRect(hdc, &ps.rcPaint, @intToPtr(win.HBRUSH, @as(usize, win.COLOR_WINDOW+1)));
             _ = win.EndPaint(hWnd, &ps);
             return 0;
