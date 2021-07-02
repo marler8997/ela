@@ -44,20 +44,69 @@ pub fn panic(msg: []const u8, stacktrace: ?*std.builtin.StackTrace) noreturn {
     kernel32.ExitProcess(1);
 }
 
+// copied from zigwin32
+const DBG_PRINTEXCEPTION_WIDE_C = @as(i32, 1073807370);
+// NOTE: this const is missing from win32metadata, need to file an issue
+const EXCEPTION_CONTINUE_EXECUTION: i32 = @bitCast(i32, @as(u32, 0xffffffff));
+
+// TODO: this functionality should be in std
+pub const FmtUtf16le = struct {
+    s: []const u16,
+    pub fn format(
+        self: @This(),
+        comptime fmt: []const u8,
+        options: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
+        _ = fmt;
+        _ = options;
+        // TODO: use buf size of 4 for now, increase when tested
+        var buf: [4]u8 = undefined;
+        var it = std.unicode.Utf16LeIterator.init(self.s);
+        var u8len: usize = 0;
+        while (it.nextCodepoint() catch @panic("bad utf16le string")) |codepoint| {
+            u8len += std.unicode.utf8Encode(codepoint, buf[u8len..]) catch @panic("bad utf16le string");
+            if (u8len + 3 >= buf.len) {
+                try writer.writeAll(buf[0..u8len]);
+                u8len = 0;
+            }
+        }
+        try writer.writeAll(buf[0..u8len]);
+    }
+};
+pub fn fmtUtf16le(s: []const u16) FmtUtf16le {
+    return .{ .s = s };
+}
+
 // workaround: https://github.com/ziglang/zig/issues/7645
-fn handleSegfault(info: *win.EXCEPTION_POINTERS) callconv(win.WINAPI) c_long {
+fn handleException(info: *win.EXCEPTION_POINTERS) callconv(win.WINAPI) i32 {
     const desc = switch (info.ExceptionRecord.ExceptionCode) {
         win.EXCEPTION_DATATYPE_MISALIGNMENT => "Unaligned Memory Access",
         win.EXCEPTION_ACCESS_VIOLATION => "Access Violation",
         win.EXCEPTION_ILLEGAL_INSTRUCTION => "Illegal Instruction",
         win.EXCEPTION_STACK_OVERFLOW => "Stack Overflow",
+        DBG_PRINTEXCEPTION_WIDE_C => {
+            if (info.ExceptionRecord.NumberParameters >= 2)
+            {
+                const len = info.ExceptionRecord.ExceptionInformation[0];
+                std.debug.assert(len > 0);
+                const str = @intToPtr([*:0]const u16, info.ExceptionRecord.ExceptionInformation[1]);
+                std.debug.assert(str[len] == 0);
+                log("OutputDebugStringW: {}", .{fmtUtf16le(str[0..len-1])});
+            }
+            else
+            {
+                log("Got DBG_PRINTEXCEPTION_WIDE_C with {} parameters???", .{info.ExceptionRecord.NumberParameters});
+            }
+            return EXCEPTION_CONTINUE_EXECUTION;
+        },
         else => "???",
     };
-    die(L("SegFault"), "{s} ({})", .{desc, info.ExceptionRecord.ExceptionCode});
+    die(L("Exception"), "{s} ({} 0x{1x})", .{desc, info.ExceptionRecord.ExceptionCode});
 }
 
 pub export fn wWinMainCRTStartup() callconv(win.WINAPI) noreturn {
-    _ = kernel32.AddVectoredExceptionHandler(0, handleSegfault);
+    _ = kernel32.AddVectoredExceptionHandler(0, handleException);
 
     const result = init: {
         const LOG_FILENAME = "editor.log";
@@ -85,6 +134,7 @@ var global_gl_data : mygl.GLData = undefined;
 fn main() !void {
     log("started", .{});
     const hInstance = @ptrCast(win.HINSTANCE, @alignCast(@alignOf(win.HINSTANCE), win.GetModuleHandleW(null)));
+    const class_name = T("My Window Class");
     const wc = win.WNDCLASSW {
         .style = user32.CS_OWNDC, // required for OpenGL context
         .lpfnWndProc = WindowProc,
@@ -95,14 +145,14 @@ fn main() !void {
         .hCursor = null,
         .hbrBackground = null,
         .lpszMenuName = null,
-        .lpszClassName = T("My Window Class"),
+        .lpszClassName = class_name,
     };
     if(0 == win.RegisterClassW(&wc))
         die(WindowErrortitle, "RegisterClassW failed with {}", .{GetLastError()});
 
     const hWnd = win.CreateWindowExW(
         0,
-        wc.lpszClassName,
+        class_name,
         T("MyWindowName"),
         //win.WS_OVERLAPPEDWINDOW | win.WS_VISIBLE,
         win.WS_OVERLAPPEDWINDOW | win.WS_CLIPSIBLINGS | win.WS_CLIPCHILDREN,
