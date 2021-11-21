@@ -1,3 +1,4 @@
+const builtin = @import("builtin");
 const std = @import("std");
 const Builder = std.build.Builder;
 
@@ -18,25 +19,25 @@ pub fn build(b: *Builder) !void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const gl_pkg = std.build.Pkg {
-        .name = "gl",
-        .path = .{ .path = zig_gl_repo ++ std.fs.path.sep_str ++ "gl.zig" },
+    const glindex_pkg = std.build.Pkg {
+        .name = "glindex",
+        .path = .{ .path = zig_gl_repo ++ std.fs.path.sep_str ++ "glindex.zig" },
     };
 
-    const exe_gl_gen = try b.allocator.create(OpenGlCodegenStep);
-    exe_gl_gen.* = try OpenGlCodegenStep.init(b, .{
+    const exe_gl_gen = OpenGlCodegenStep.create(b, .{
         .filename = "gl.generated.zig",
         .funcs = &gl_funcs,
+        .glindex_pkg_name = glindex_pkg.name,
     });
 
-    const exe = b.addExecutable("editor", if (std.builtin.os.tag == .windows) "windows-main.zig" else "notwindows-main.zig");
+    const exe = b.addExecutable("editor", if (builtin.os.tag == .windows) "windows-main.zig" else "notwindows-main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();
     exe.subsystem = .Windows;
     exe.single_threaded = true;
     exe.step.dependOn(&exe_gl_gen.step);
-    exe.addPackage(gl_pkg);
+    exe.addPackage(glindex_pkg);
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());

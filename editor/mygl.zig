@@ -1,49 +1,44 @@
+const builtin = @import("builtin");
 const std = @import("std");
 
 const common = @import("./common.zig");
 const log = common.log;
 const die = common.die;
 
-const gl = @import("gl.generated.zig");
-usingnamespace gl;
-usingnamespace gl.bits;
-usingnamespace gl.runtimefuncs;
+const glindex = @import("glindex");
+const gl = struct {
+    usingnamespace glindex.bits;
 
-const zgl = @import("gl").zig.wrap(gl);
+    const gl_generated = @import("gl.generated.zig");
+    usingnamespace gl_generated;
+    usingnamespace gl_generated.runtimefuncs;
+};
+const zgl = glindex.zig.wrap(gl);
 
-//usingnamespace gl.bits;
-//usingnamespace gl.funcs;
-//usingnamespace gl.v1_0;
-//usingnamespace gl.v1_0.Funcs;
-
-//usingnamespace gl.v2_0;
-//usingnamespace gl.v2_0.Funcs;
-//usingnamespace @import("./gl.zig");
-
-usingnamespace if (std.builtin.os.tag == .windows) struct {
-    pub const win = struct {
+const platform = if (builtin.os.tag == .windows) struct {
+    const win = struct {
         pub usingnamespace @import("./windows.zig");
         pub usingnamespace std.os.windows;
     };
-    pub const kernel32 = win.kernel32;
-    pub const GetLastError = kernel32.GetLastError;
+    const kernel32 = win.kernel32;
+    pub const lastError = kernel32.GetLastError;
     pub const GlGetProcErrorTitle = common.T("OpenGL Get Proc Error");
     pub const GlInitErrorTitle = common.T("OpenGL Initialization Error");
-    pub const glLastError = GetLastError;
+    pub const glLastError = win.kernel32.GetLastError;
 } else struct {};
 
 
 pub fn contextInitialized() void {
-    log("OPENGL VERSION: {s}", .{glGetString(GL_VERSION)});
+    log("OPENGL VERSION: {s}", .{gl.getString(gl.VERSION)});
     log("!!! TODO: parse and verify opengl version", .{});
 
     if (gl.loadRuntimeFuncs()) |err| {
-        die(GlGetProcErrorTitle, "after loading {} OpenGL functions, failed to load '{s}' with {}", .{err.loaded, err.failed, GetLastError()});
+        die(platform.GlGetProcErrorTitle, "after loading {} OpenGL functions, failed to load '{s}' with {}", .{err.loaded, err.failed, platform.lastError()});
     }
 }
 
 pub fn onWindowSize(width: u32, height: u32) void {
-    glViewport(0, 0, @intCast(i32, width), @intCast(i32, height));
+    gl.viewport(0, 0, width, height);
 }
 
 // TODO: does this fix line numbers in shader log? gl.zig.toZLinesStringLiteral ???
@@ -79,28 +74,28 @@ const uniform_fragment_shader_src =
 pub const GLData = struct {
     random: std.rand.DefaultPrng,
     vec3_orange: struct {
-        prog: GLuint,
-        triangle: GLTriangle,
-        rect0: GLRect,
-        rect1: GLRect,
+        prog: u32,
+        triangle: Triangle,
+        rect0: Rect,
+        rect1: Rect,
     },
     vec3_uniform: struct {
-        prog: GLuint,
-        color_loc: GLint,
-        rect0: GLRect,
+        prog: u32,
+        color_loc: i32,
+        rect0: Rect,
     },
 };
 
 pub fn init() !GLData {
     const programs = init: {
         const vec3_vertex_shader = try compileShader(.vertex, vec3_vertex_shader_src);
-        defer glDeleteShader(vec3_vertex_shader);
+        defer gl.deleteShader(vec3_vertex_shader);
 
         const orange_fragment_shader = try compileShader(.fragment, orange_fragment_shader_src);
-        defer glDeleteShader(orange_fragment_shader);
+        defer gl.deleteShader(orange_fragment_shader);
 
         const uniform_fragment_shader = try compileShader(.fragment, uniform_fragment_shader_src);
-        defer glDeleteShader(uniform_fragment_shader);
+        defer gl.deleteShader(uniform_fragment_shader);
 
         break :init .{
             .vec3_orange = try makeProgram(vec3_vertex_shader, orange_fragment_shader),
@@ -109,23 +104,23 @@ pub fn init() !GLData {
     };
 
     // uncomment this call to draw in wireframe polygons.
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //glPolygonMode(gl.FRONT_AND_BACK, gl.LINE);
 
-    const uniform_color_loc = glGetUniformLocation(programs.vec3_uniform, "uniformColor");
+    const uniform_color_loc = gl.getUniformLocation(programs.vec3_uniform, "uniformColor");
     common.assert(uniform_color_loc != -1);
 
     return GLData {
         .random = std.rand.DefaultPrng.init(0),
         .vec3_orange = .{
             .prog = programs.vec3_orange,
-            .triangle = GLTriangle.init(),
-            .rect0 = GLRect.init(.{
+            .triangle = Triangle.init(),
+            .rect0 = Rect.init(.{
                 .left = 0.6,
                 .top  = 0.8,
                 .right = 0.8,
                 .bottom = 0.6,
             }),
-            .rect1 = GLRect.init(.{
+            .rect1 = Rect.init(.{
                 .left = 0.6,
                 .top  = 0.4,
                 .right = 0.8,
@@ -135,7 +130,7 @@ pub fn init() !GLData {
         .vec3_uniform = .{
             .prog = programs.vec3_uniform,
             .color_loc = uniform_color_loc,
-            .rect0 = GLRect.init(.{
+            .rect0 = Rect.init(.{
                 .left = 0.2,
                 .top  = 0.7,
                 .right = 0.4,
@@ -149,59 +144,59 @@ pub fn init() !GLData {
 pub fn render(gl_data: *GLData) void {
     log("render", .{});
 
-    glClearColor(0.2, 0.3, 0.3, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glUseProgram(gl_data.vec3_orange.prog);
+    gl.clearColor(0.2, 0.3, 0.3, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(gl_data.vec3_orange.prog);
     //gl_data.triangle.render();
     gl_data.vec3_orange.rect0.render();
     gl_data.vec3_orange.rect1.render();
 
-    glUseProgram(gl_data.vec3_uniform.prog);
-    glUniform4f(gl_data.vec3_uniform.color_loc,
-        gl_data.random.random.float(f32),
-        gl_data.random.random.float(f32),
-        gl_data.random.random.float(f32),
+    gl.useProgram(gl_data.vec3_uniform.prog);
+    gl.uniform4f(gl_data.vec3_uniform.color_loc,
+        gl_data.random.random().float(f32),
+        gl_data.random.random().float(f32),
+        gl_data.random.random().float(f32),
         1
     );
     gl_data.vec3_uniform.rect0.render();
-    glFlush();
+    gl.flush();
 }
 
 const do_unbinds = true;
 
 
-pub const GLTriangle = struct {
-    vao: GLuint,
-    vbo: GLuint,
-    pub fn init() GLTriangle {
-        var self : GLTriangle = .{
+pub const Triangle = struct {
+    vao: u32,
+    vbo: u32,
+    pub fn init() Triangle {
+        var self : Triangle = .{
             .vao = undefined,
             .vbo = undefined,
         };
-        zgl.genVertexArrays(singleItemSlice(GLuint, &self.vao));
-        glBindVertexArray(self.vao);
-        defer if (do_unbinds) glBindVertexArray(0);
+        zgl.genVertexArrays(singleItemSlice(u32, &self.vao));
+        gl.bindVertexArray(self.vao);
+        defer if (do_unbinds) gl.bindVertexArray(0);
 
-        zgl.genBuffers(singleItemSlice(GLuint, &self.vbo));
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo);
-        defer if (do_unbinds) glBindBuffer(GL_ARRAY_BUFFER, 0);
-        zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
+        zgl.genBuffers(singleItemSlice(u32, &self.vbo));
+        gl.bindBuffer(gl.ARRAY_BUFFER, self.vbo);
+        defer if (do_unbinds) gl.bindBuffer(gl.ARRAY_BUFFER, 0);
+        zgl.bufferData(gl.ARRAY_BUFFER, f32, &[_]f32 {
             -0.5, -0.5, 0.0, // left
              0.5, -0.5, 0.0, // right
              0.0,  0.5, 0.0, // top
-        }, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
-        glEnableVertexAttribArray(0);
+        }, gl.STATIC_DRAW);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 3 * @sizeOf(f32), null);
+        gl.enableVertexAttribArray(0);
         return self;
     }
     pub fn deinitTriangle(self: @This()) void {
-        zgl.deleteBuffers(singleItemSlice(GLuint, &self.vbo));
-        zgl.deleteVertexArrays(singleItemSlice(GLuint, &self.vao));
+        zgl.deleteBuffers(singleItemSlice(u32, &self.vbo));
+        zgl.deleteVertexArrays(singleItemSlice(u32, &self.vao));
     }
     pub fn render(self: @This()) void {
-        glBindVertexArray(self.vao);
-        defer if (do_unbinds) glBindVertexArray(0);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        gl.bindVertexArray(self.vao);
+        defer if (do_unbinds) gl.bindVertexArray(0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 };
 
@@ -209,50 +204,50 @@ const Rect2d = struct {
     left: f32, top: f32, right: f32, bottom: f32,
 };
 
-pub const GLRect = struct {
-    vao: GLuint,
-    buf_objs: [2]GLuint,
-    pub fn init(coord: Rect2d) GLRect {
-        var self : GLRect = .{
+pub const Rect = struct {
+    vao: u32,
+    buf_objs: [2]u32,
+    pub fn init(coord: Rect2d) Rect {
+        var self : Rect = .{
             .vao = undefined,
             .buf_objs = undefined,
         };
-        zgl.genVertexArrays(singleItemSlice(GLuint, &self.vao));
-        glBindVertexArray(self.vao);
-        defer if (do_unbinds) glBindVertexArray(0);
+        zgl.genVertexArrays(singleItemSlice(u32, &self.vao));
+        gl.bindVertexArray(self.vao);
+        defer if (do_unbinds) gl.bindVertexArray(0);
 
-        zgl.genBuffers(structSlice(GLuint, &self.buf_objs));
-        glBindBuffer(GL_ARRAY_BUFFER, self.buf_objs[0]);
-        // NOTE: cannot unbind this until after calling glEnableVertexAttribArray?
-        defer if (do_unbinds) glBindBuffer(GL_ARRAY_BUFFER, 0);
-        zgl.bufferData(GL_ARRAY_BUFFER, GLfloat, &[_]GLfloat {
+        zgl.genBuffers(structSlice(u32, &self.buf_objs));
+        gl.bindBuffer(gl.ARRAY_BUFFER, self.buf_objs[0]);
+        // NOTE: cannot unbind this until after calling gl.enableVertexAttribArray?
+        defer if (do_unbinds) gl.bindBuffer(gl.ARRAY_BUFFER, 0);
+        zgl.bufferData(gl.ARRAY_BUFFER, f32, &[_]f32 {
             coord.left,  coord.bottom, 0.0,
             coord.left,  coord.top   , 0.0,
             coord.right, coord.bottom, 0.0,
             coord.right, coord.top   , 0.0,
-        }, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * @sizeOf(GLfloat), null);
-        glEnableVertexAttribArray(0);
+        }, gl.STATIC_DRAW);
+        gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 3 * @sizeOf(f32), null);
+        gl.enableVertexAttribArray(0);
 
         // TODO: I don't need this element buffer, remove it, but I'm keeping it as an example for now
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.buf_objs[1]);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, self.buf_objs[1]);
         // NOTE: cannot unbind this for some reason?
         // I saw this: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
         // however, it seems I can't unbind it even after unbinding the current VAO?
-        //defer if (do_unbinds) glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        zgl.bufferData(GL_ELEMENT_ARRAY_BUFFER, GLuint, &[_]GLuint {
+        //defer if (do_unbinds) gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, 0);
+        zgl.bufferData(gl.ELEMENT_ARRAY_BUFFER, u32, &[_]u32 {
             0, 1, 2, 3,
-        }, GL_STATIC_DRAW);
+        }, gl.STATIC_DRAW);
         return self;
     }
     pub fn deinitTriangle(self: @This()) void {
         zgl.deleteBuffers(&self.buf_objs);
-        zgl.deleteVertexArrays(singleItemSlice(GLuint, &self.vao));
+        zgl.deleteVertexArrays(singleItemSlice(u32, &self.vao));
     }
     pub fn render(self: @This()) void {
-        glBindVertexArray(self.vao);
-        defer if (do_unbinds) glBindVertexArray(0);
-        glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, null);
+        gl.bindVertexArray(self.vao);
+        defer if (do_unbinds) gl.bindVertexArray(0);
+        gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, null);
     }
 };
 
@@ -273,51 +268,51 @@ fn structSlice(comptime T: type, ref: anytype) []T {
 const ShaderKind = enum { vertex, fragment };
 
 
-fn makeProgram(vertex_shader: GLuint, fragment_shader: GLuint) !GLuint {
-    const prog = glCreateProgram();
-    if (prog == 0) die(GlInitErrorTitle, "glCreateProgram failed", .{});
-    errdefer glDeleteProgram(prog);
+fn makeProgram(vertex_shader: u32, fragment_shader: u32) !u32 {
+    const prog = gl.createProgram();
+    if (prog == 0) die(platform.GlInitErrorTitle, "gl.createProgram failed", .{});
+    errdefer gl.deleteProgram(prog);
 
-    glAttachShader(prog, vertex_shader);
-    glAttachShader(prog, fragment_shader);
-    glLinkProgram(prog);
+    gl.attachShader(prog, vertex_shader);
+    gl.attachShader(prog, fragment_shader);
+    gl.linkProgram(prog);
     try enforceProgramLinked(prog);
     return prog;
 }
 
-fn compileShader(kind: ShaderKind, shader_src: [*:0]const u8) !GLuint {
-    const shader = glCreateShader(switch (kind) { .vertex => GL_VERTEX_SHADER, .fragment => GL_FRAGMENT_SHADER });
+fn compileShader(kind: ShaderKind, shader_src: [*:0]const u8) !u32 {
+    const shader = gl.createShader(switch (kind) { .vertex => gl.VERTEX_SHADER, .fragment => gl.FRAGMENT_SHADER });
     if (shader == 0)
-        die(GlInitErrorTitle, "glCreateShader {} failed with {}\n", .{kind, glLastError()});
-    errdefer glDeleteShader(shader);
+        die(platform.GlInitErrorTitle, "gl.createShader {} failed with {}\n", .{kind, platform.glLastError()});
+    errdefer gl.deleteShader(shader);
 
     zgl.shaderSourceSingle(shader, shader_src);
-    glCompileShader(shader);
+    gl.compileShader(shader);
     try enforceShaderCompiled(kind, shader);
     return shader;
 }
 
-fn enforceShaderCompiled(kind: ShaderKind, shader: GLuint) !void {
-    const compile_status = zgl.getShaderiv(shader, GL_COMPILE_STATUS);
+fn enforceShaderCompiled(kind: ShaderKind, shader: u32) !void {
+    const compile_status = zgl.getShaderiv(shader, gl.COMPILE_STATUS);
     if (compile_status == 0) {
         log("Error: failed to compile {} shader", .{kind});
         if (try zgl.getShaderInfoLogAlloc(std.heap.page_allocator, shader)) |log_str| {
             log("{s}", .{log_str});
-            die(GlInitErrorTitle, "failed to compile {} shader, see log for details", .{kind});
+            die(platform.GlInitErrorTitle, "failed to compile {} shader, see log for details", .{kind});
         }
-        die(GlInitErrorTitle, "failed to compile {} shader, unable to retrieve error log", .{kind});
+        die(platform.GlInitErrorTitle, "failed to compile {} shader, unable to retrieve error log", .{kind});
     }
 }
 
-fn enforceProgramLinked(program: GLuint) !void {
-    const link_status = zgl.getProgramiv(program, GL_LINK_STATUS);
+fn enforceProgramLinked(program: u32) !void {
+    const link_status = zgl.getProgramiv(program, gl.LINK_STATUS);
     if (link_status == 0) {
         log("Error: failed to link shaders", .{});
         if (try zgl.getProgramInfoLogAlloc(std.heap.page_allocator, program)) |log_str| {
             log("{s}", .{log_str});
-            die(GlInitErrorTitle, "failed to link shaders, see log for details", .{});
+            die(platform.GlInitErrorTitle, "failed to link shaders, see log for details", .{});
         }
-        die(GlInitErrorTitle, "failed to link shaders, unable to retrieve error log", .{});
+        die(platform.GlInitErrorTitle, "failed to link shaders, unable to retrieve error log", .{});
     }
 }
 

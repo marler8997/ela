@@ -1,6 +1,8 @@
 //! Windows stuff missing in the standard library
 const std = @import("std");
-usingnamespace std.os.windows;
+const win32 = struct {
+    usingnamespace std.os.windows;
+};
 
 pub fn LOWORD(value: u32) u16 {
     return @intCast(u16, value & 0xFFFF);
@@ -17,25 +19,25 @@ pub const PFD_MAIN_PLANE = 0;
 
 pub extern "kernel32" fn GetModuleHandleW(
     lpModuleName: ?[*:0]u16,
-) callconv(WINAPI) HMODULE;
+) callconv(win32.WINAPI) win32.HMODULE;
 
 pub extern "user32" fn PostQuitMessage (
     nExitCode: c_int,
-) callconv(WINAPI) void;
+) callconv(win32.WINAPI) void;
 
 pub extern "user32" fn PostMessageW (
-    hWnd: ?HWND,
-    Msg: UINT,
-    wParam: WPARAM,
-    lPara: LPARAM,
-) callconv(WINAPI) BOOL;
+    hWnd: ?win32.HWND,
+    Msg: win32.UINT,
+    wParam: win32.WPARAM,
+    lPara: win32.LPARAM,
+) callconv(win32.WINAPI) win32.BOOL;
 
 pub extern "user32" fn MessageBoxW (
-    hWnd: ?HWND,
-    lpText: LPCWSTR,
-    lpCaption: LPCWSTR,
-    uType: UINT,
-) callconv(WINAPI) c_int;
+    hWnd: ?win32.HWND,
+    lpText: win32.LPCWSTR,
+    lpCaption: win32.LPCWSTR,
+    uType: win32.UINT,
+) callconv(win32.WINAPI) c_int;
 
 pub const MB_OK = 0;
 
@@ -51,24 +53,24 @@ pub const WM_CLOSE = 0x0010;
 pub const WM_QUIT = 0x0012;
 pub const WM_SETFOCUS = 0x0007;
 
-pub const WNDPROC = fn (HWND, UINT, WPARAM, LPARAM) callconv(WINAPI) LRESULT;
+pub const WNDPROC = fn (win32.HWND, win32.UINT, win32.WPARAM, win32.LPARAM) callconv(win32.WINAPI) win32.LRESULT;
 
 pub const WNDCLASSW = extern struct {
-    style: UINT,
+    style: win32.UINT,
     lpfnWndProc: WNDPROC,
     cbClsExtra: c_int,
     cbWndExtra: c_int,
-    hInstance: HINSTANCE,
-    hIcon: ?HICON,
-    hCursor: ?HCURSOR,
-    hbrBackground: ?HBRUSH,
-    lpszMenuName: ?LPCWSTR,
-    lpszClassName: LPCWSTR,
+    hInstance: win32.HINSTANCE,
+    hIcon: ?win32.HICON,
+    hCursor: ?win32.HCURSOR,
+    hbrBackground: ?win32.HBRUSH,
+    lpszMenuName: ?win32.LPCWSTR,
+    lpszClassName: win32.LPCWSTR,
 };
 
 pub extern "user32" fn RegisterClassW (
     lpWndClass: *const WNDCLASSW,
-) callconv(WINAPI) ATOM;
+) callconv(win32.WINAPI) win32.ATOM;
 
 // WS
 pub const WS_OVERLAPPED = 0x00000000;
@@ -84,70 +86,70 @@ pub const WS_CLIPCHILDREN = 33554432;
 pub const WS_VISIBLE = 0x10000000;
 
 pub extern "user32" fn CreateWindowExW(
-    dwExStyle: DWORD,
+    dwExStyle: win32.DWORD,
     lpClassName: [*:0]const u16,
     lpWindowName: [*:0]const u16,
-    dwStyle: DWORD,
+    dwStyle: win32.DWORD,
     X: c_int,
     Y: c_int,
     nWidth: c_int,
     nHeight: c_int,
-    hWindParent: ?HWND,
-    hMenu: ?HMENU,
-    hInstance: HINSTANCE,
-    lpParam: ?LPVOID,
-) callconv(WINAPI) ?HWND;
+    hWindParent: ?win32.HWND,
+    hMenu: ?win32.HMENU,
+    hInstance: win32.HINSTANCE,
+    lpParam: ?win32.LPVOID,
+) callconv(win32.WINAPI) ?win32.HWND;
 
 pub const MSG = extern struct {
-    hWnd: ?HWND,
-    message: UINT,
-    wParam: WPARAM,
-    lParam: LPARAM,
-    time: DWORD,
-    pt: POINT,
-    lPrivate: DWORD,
+    hWnd: ?win32.HWND,
+    message: win32.UINT,
+    wParam: win32.WPARAM,
+    lParam: win32.LPARAM,
+    time: win32.DWORD,
+    pt: win32.POINT,
+    lPrivate: win32.DWORD,
 };
 
 pub const PAINTSTRUCT = extern struct {
-    hdc: HDC ,
-    fErase: BOOL,
-    rcPaint: RECT,
-    fRestore: BOOL,
-    fIncUpdate: BOOL,
+    hdc: win32.HDC ,
+    fErase: win32.BOOL,
+    rcPaint: win32.RECT,
+    fRestore: win32.BOOL,
+    fIncUpdate: win32.BOOL,
     rgbReserved: [32]u8,
 };
 
 pub extern "user32" fn GetMessageW(
     lpMsg: *MSG,
-    hWnd: ?HWND,
-    wMsgFilterMin: UINT,
-    wMsgFilterMax: UINT,
-) callconv(WINAPI) BOOL;
+    hWnd: ?win32.HWND,
+    wMsgFilterMin: win32.UINT,
+    wMsgFilterMax: win32.UINT,
+) callconv(win32.WINAPI) win32.BOOL;
 
 pub extern "user32" fn DispatchMessageW(
   lpMsg: *const MSG,
-) callconv(WINAPI) LRESULT;
+) callconv(win32.WINAPI) win32.LRESULT;
 
 
 pub extern "user32" fn BeginPaint(
-    hWnd: HWND,
+    hWnd: win32.HWND,
     lpPaint: *PAINTSTRUCT,
-) callconv(WINAPI) HDC;
+) callconv(win32.WINAPI) win32.HDC;
 pub extern "user32" fn EndPaint(
-    hWnd: HWND,
+    hWnd: win32.HWND,
     lpPaint: *PAINTSTRUCT,
-) callconv(WINAPI) BOOL;
+) callconv(win32.WINAPI) win32.BOOL;
 pub extern "user32" fn FillRect(
-  hDC: HDC,
-  lprc: *const RECT,
-  hb: HBRUSH,
-) callconv(WINAPI) c_int;
+  hDC: win32.HDC,
+  lprc: *const win32.RECT,
+  hb: win32.HBRUSH,
+) callconv(win32.WINAPI) c_int;
 pub extern "user32" fn DefWindowProcW(
-    hWnd: HWND,
-    Msg: UINT,
-    wParam: WPARAM,
-    lParam: LPARAM,
-) callconv(WINAPI) LRESULT;
+    hWnd: win32.HWND,
+    Msg: win32.UINT,
+    wParam: win32.WPARAM,
+    lParam: win32.LPARAM,
+) callconv(win32.WINAPI) win32.LRESULT;
 
 pub const COLOR_SCROLLBAR           =  0;
 pub const COLOR_BACKGROUND          =  1;
@@ -171,11 +173,11 @@ pub const COLOR_BTNTEXT             = 18;
 pub const COLOR_INACTIVECAPTIONTEXT = 19;
 pub const COLOR_BTNHIGHLIGHT        = 20;
 
-pub extern "user32" fn ReleaseDC(hWnd: ?HWND, hDC: HDC) callconv(WINAPI) c_int;
+pub extern "user32" fn ReleaseDC(hWnd: ?win32.HWND, hDC: win32.HDC) callconv(win32.WINAPI) c_int;
 
 pub extern "gdi32" fn DescribePixelFormat(
-    hdc: HDC,
+    hdc: win32.HDC,
     iPixelFormat: c_int,
     nBytes: u32,
-    ppf: *gdi32.PIXELFORMATDESCRIPTOR,
-) callconv(WINAPI) c_int;
+    ppf: *win32.gdi32.PIXELFORMATDESCRIPTOR,
+) callconv(win32.WINAPI) c_int;

@@ -2,7 +2,8 @@
 
 const std = @import("std");
 
-const gl = @import("../gl.zig");
+const bits = @import("bits.zig");
+const windows = @import("windows.zig");
 
 pub const LoadRuntimeFuncsError = struct {
     loaded: u32,
@@ -10,9 +11,9 @@ pub const LoadRuntimeFuncsError = struct {
 };
 pub fn loadRuntimeFuncs(runtime_funcs: anytype) ?LoadRuntimeFuncsError {
     inline for (@typeInfo(runtime_funcs).Struct.decls) |decl, i| {
-        const decl_name_z = toZStringLiteral(decl.name);
-        std.debug.assert(decl_name_z.ptr[decl_name_z.len] == 0);
-        @field(runtime_funcs, decl.name) = @ptrCast(@TypeOf(@field(runtime_funcs, decl.name)), gl.windows.wglGetProcAddress(decl_name_z)
+        const export_name = toZStringLiteral("gl" ++ ([_]u8 {std.ascii.toUpper(decl.name[0])}) ++ decl.name[1..]);
+        std.debug.assert(export_name.ptr[export_name.len] == 0);
+        @field(runtime_funcs, decl.name) = @ptrCast(@TypeOf(@field(runtime_funcs, decl.name)), windows.wglGetProcAddress(export_name)
             orelse return LoadRuntimeFuncsError { .loaded = i, .failed = decl.name });
     }
     return null;
@@ -35,72 +36,79 @@ pub fn toZLinesStringLiteral(comptime str: []const u8) []const [*:0]const u8 {
 }
 
 /// Return a module of wrapping functions meant for Zig use.
-pub fn wrap(comptime generated_gl: anytype) type { return struct {
-    usingnamespace generated_gl.bits;
-    usingnamespace generated_gl.runtimefuncs;
+pub fn wrap(comptime gl_generated: anytype) type { return struct {
+    const gl = struct {
+        usingnamespace bits;
+        usingnamespace gl_generated;
+        usingnamespace gl_generated.runtimefuncs;
+    };
 
-    //pub fn shaderSource(shader: GLuint, count: GLsizei, lines: [*]const []const u8) {
+    //pub fn shaderSource(shader: u32, count: u32, lines: [*]const []const u8) {
     //    // TODO: allocate an array of lengths for each line on the stack (i.e. using alloca)
     //    @panic("not impl");
     //}
-    pub fn shaderSourceZ(shader: GLuint, lines: []const [*:0]const u8) void {
-        glShaderSource(shader, @intCast(GLsizei , lines.len), lines.ptr, null);
+    pub fn shaderSourceZ(shader: u32, lines: []const [*:0]const u8) void {
+        gl.shaderSource(shader, @intCast(u32 , lines.len), lines.ptr, null);
     }
 
-    pub fn shaderSourceSingle(shader: GLuint, src: [*:0]const u8) void {
+    pub fn shaderSourceSingle(shader: u32, src: [*:0]const u8) void {
         const src_array = [_][*:0]const u8 { src };
-        glShaderSource(shader, 1, &src_array, null);
+        gl.shaderSource(shader, 1, &src_array, null);
     }
 
-    pub fn getShaderiv(shader: GLuint, pname: GLenum) GLint {
-        var result : GLint = undefined;
-        glGetShaderiv(shader, pname, &result);
+    pub fn getShaderiv(shader: u32, pname: gl.Enum) i32 {
+        var result : i32 = undefined;
+        gl.getShaderiv(shader, pname, &result);
         return result;
     }
 
-    pub fn getProgramiv(program: GLuint, pname: GLenum) GLint {
-        var result : GLint = undefined;
-        glGetProgramiv(program, pname, &result);
+    pub fn getProgramiv(program: u32, pname: gl.Enum) i32 {
+        var result : i32 = undefined;
+        gl.getProgramiv(program, pname, &result);
         return result;
     }
 
     // TODO: support max length?
-    pub fn getShaderInfoLogAlloc(allocator: *std.mem.Allocator, shader: GLuint) !?[:0]u8 {
-        const log_len = getShaderiv(shader, GL_INFO_LOG_LENGTH);
-        if (log_len == 0) return null;
+    pub fn getShaderInfoLogAlloc(allocator: *std.mem.Allocator, shader: u32) !?[:0]u8 {
+        const log_len_i32 = getShaderiv(shader, gl.INFO_LOG_LENGTH);
+        if (log_len_i32 == 0) return null;
+        if (log_len_i32 < 0) @panic("is this possible?");
+        const len_len_u31 = @intCast(u31, log_len_i32);
 
-        const log_str = try allocator.alloc(u8, @intCast(usize, log_len));
+        const log_str = try allocator.alloc(u8, @intCast(usize, len_len_u31));
         errdefer allocatof.free(log_str);
 
-        glGetShaderInfoLog(shader, log_len, null, log_str.ptr);
-        std.debug.assert(log_str[@intCast(usize, log_len) - 1] == 0);
-        return log_str[0 .. @intCast(usize, log_len) - 1 :0];
+        gl.getShaderInfoLog(shader, len_len_u31, null, log_str.ptr);
+        std.debug.assert(log_str[@intCast(usize, len_len_u31) - 1] == 0);
+        return log_str[0 .. @intCast(usize, len_len_u31) - 1 :0];
     }
 
-    pub fn getProgramInfoLogAlloc(allocator: *std.mem.Allocator, program: GLuint) !?[:0]u8 {
-        const log_len = getProgramiv(program, GL_INFO_LOG_LENGTH);
-        if (log_len == 0) return null;
+    pub fn getProgramInfoLogAlloc(allocator: *std.mem.Allocator, program: u32) !?[:0]u8 {
+        const log_len_i32 = getProgramiv(program, gl.INFO_LOG_LENGTH);
+        if (log_len_i32 == 0) return null;
+        if (log_len_i32 < 0) @panic("is this possible?");
+        const len_len_u31 = @intCast(u31, log_len_i32);
 
-        const log_str = try allocator.alloc(u8, @intCast(usize, log_len));
+        const log_str = try allocator.alloc(u8, @intCast(usize, len_len_u31));
         errdefer allocatof.free(log_str);
 
-        glGetProgramInfoLog(program, log_len, null, log_str.ptr);
-        std.debug.assert(log_str[@intCast(usize, log_len) - 1] == 0);
-        return log_str[0 .. @intCast(usize, log_len) - 1 :0];
+        gl.getProgramInfoLog(program, len_len_u31, null, log_str.ptr);
+        std.debug.assert(log_str[@intCast(usize, len_len_u31) - 1] == 0);
+        return log_str[0 .. @intCast(usize, len_len_u31) - 1 :0];
     }
 
-    pub fn genVertexArrays(objs: []GLuint) void {
-        glGenVertexArrays(@intCast(GLsizei, objs.len), objs.ptr);
+    pub fn genVertexArrays(objs: []u32) void {
+        gl.genVertexArrays(@intCast(u32, objs.len), objs.ptr);
     }
-    pub fn genBuffers(objs: []GLuint) void {
-        glGenBuffers(@intCast(GLsizei, objs.len), objs.ptr);
+    pub fn genBuffers(objs: []u32) void {
+        gl.genBuffers(@intCast(u32, objs.len), objs.ptr);
     }
-    pub fn deleteBuffers(objs: []GLuint) void {
-        glDeleteBuffers(@intCast(GLsizei, objs.len), objs.ptr);
+    pub fn deleteBuffers(objs: []u32) void {
+        gl.deleteBuffers(@intCast(u32, objs.len), objs.ptr);
     }
 
-    pub fn bufferData(target: GLenum, comptime T: type, data: []const T, usage: GLenum) void {
-        glBufferData(target, @intCast(GLsizeiptr, data.len * @sizeOf(T)), data.ptr, usage);
+    pub fn bufferData(target: gl.Enum, comptime T: type, data: []const T, usage: gl.Enum) void {
+        gl.bufferData(target, data.len * @sizeOf(T), data.ptr, usage);
     }
 };}
 
@@ -124,11 +132,11 @@ pub fn wrap(comptime generated_gl: anytype) type { return struct {
 pub const VertexAttrCount = enum { _1, _2, _3, _4 };
 
 pub const VertexAttr = struct {
-    type_: gl.bits.GLenum,
+    type_: bits.gl.Enum,
     count: VertexAttrCount,
     shader_name: []const u8,
 
-    pub fn init(type_: gl.bits.GLenum, count: VertexAttrCount, shader_name: []const u8) VertexAttr {
+    pub fn init(type_: bits.gl.Enum, count: VertexAttrCount, shader_name: []const u8) VertexAttr {
         return .{
             .type_ = type_,
             .count = count,
@@ -137,7 +145,7 @@ pub const VertexAttr = struct {
     }
     pub fn shaderType(self: @This()) []const u8 {
         switch (self.type) {
-            gl.bits.GL_FLOAT => return switch (self.count) {
+            bits.GL_FLOAT => return switch (self.count) {
                 ._1 => "vec1", ._2 => "vec2", ._3 => "vec3", ._4 => "vec4",
             },
             else => @panic("here"),
@@ -157,7 +165,7 @@ pub const VertexAttrs = struct {
 
 test "VertexAttrs" {
     const attrs = VertexAttrs.init(&[_]VertexAttr {
-        .{ .type = gl.bits.GL_FLOAT, .count = ._3, .shader_name = "pos" },
+        .{ .type = bits.FLOAT, .count = ._3, .shader_name = "pos" },
     });
     try attrs.dumpShader(std.io.getStdOut().writer());
 }
