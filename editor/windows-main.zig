@@ -49,35 +49,6 @@ const DBG_PRINTEXCEPTION_WIDE_C = @as(i32, 1073807370);
 // NOTE: this const is missing from win32metadata, need to file an issue
 const EXCEPTION_CONTINUE_EXECUTION: i32 = @bitCast(i32, @as(u32, 0xffffffff));
 
-// TODO: this functionality should be in std
-pub const FmtUtf16le = struct {
-    s: []const u16,
-    pub fn format(
-        self: @This(),
-        comptime fmt: []const u8,
-        options: std.fmt.FormatOptions,
-        writer: anytype,
-    ) !void {
-        _ = fmt;
-        _ = options;
-        // TODO: use buf size of 4 for now, increase when tested
-        var buf: [4]u8 = undefined;
-        var it = std.unicode.Utf16LeIterator.init(self.s);
-        var u8len: usize = 0;
-        while (it.nextCodepoint() catch @panic("bad utf16le string")) |codepoint| {
-            u8len += std.unicode.utf8Encode(codepoint, buf[u8len..]) catch @panic("bad utf16le string");
-            if (u8len + 3 >= buf.len) {
-                try writer.writeAll(buf[0..u8len]);
-                u8len = 0;
-            }
-        }
-        try writer.writeAll(buf[0..u8len]);
-    }
-};
-pub fn fmtUtf16le(s: []const u16) FmtUtf16le {
-    return .{ .s = s };
-}
-
 // workaround: https://github.com/ziglang/zig/issues/7645
 fn handleException(info: *win.EXCEPTION_POINTERS) callconv(win.WINAPI) i32 {
     const desc = switch (info.ExceptionRecord.ExceptionCode) {
@@ -92,7 +63,8 @@ fn handleException(info: *win.EXCEPTION_POINTERS) callconv(win.WINAPI) i32 {
                 std.debug.assert(len > 0);
                 const str = @intToPtr([*:0]const u16, info.ExceptionRecord.ExceptionInformation[1]);
                 std.debug.assert(str[len] == 0);
-                log("OutputDebugStringW: {}", .{fmtUtf16le(str[0..len-1])});
+                const str_trimmed = std.mem.trimRight(u16, str[0..len-1], &[_]u16 { '\r', '\n'});
+                log("OutputDebugStringW: {}", .{std.unicode.fmtUtf16le(str_trimmed)});
             }
             else
             {
